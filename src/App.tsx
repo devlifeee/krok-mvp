@@ -10,6 +10,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import GraphEditor from "./pages/GraphEditor";
+import Metrics from "./pages/Metrics";
+import DataSources from "./pages/DataSources";
+import Settings from "./pages/Settings";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,12 +42,12 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
-        <Route path="metrics" element={<div className="p-6">Метрики (в разработке)</div>} />
+        <Route path="metrics" element={<Metrics />} />
         <Route 
           path="datasources" 
           element={
             <ProtectedRoute roles={['Admin']}>
-              <div className="p-6">Источники данных (в разработке)</div>
+              <DataSources />
             </ProtectedRoute>
           } 
         />
@@ -51,11 +55,11 @@ const AppRoutes = () => {
           path="settings" 
           element={
             <ProtectedRoute roles={['Admin']}>
-              <div className="p-6">Настройки (в разработке)</div>
+              <Settings />
             </ProtectedRoute>
           } 
         />
-        <Route path="help" element={<div className="p-6">Справка (в разработке)</div>} />
+        <Route path="help" element={<Help />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

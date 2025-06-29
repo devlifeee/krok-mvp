@@ -123,13 +123,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               ))}
             </ul>
           </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500 text-center">
-              {isOpen ? 'KrokOS Graph v1.0' : 'v1.0'}
-            </div>
-          </div>
         </div>
       </aside>
     </>
