@@ -10,7 +10,8 @@ import {
   ZoomIn, 
   ZoomOut,
   RotateCcw,
-  Trash2
+  Trash2,
+  Settings
 } from 'lucide-react';
 import { GraphNode as GraphNodeType } from '@/types/graph';
 import { GraphNode } from '@/components/graph/GraphNode';
