@@ -2,12 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
 import GraphEditor from "./pages/GraphEditor";
 import Metrics from "./pages/Metrics";
 import DataSources from "./pages/DataSources";
@@ -18,46 +16,14 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
-
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-      />
-      
-      <Route path="/" element={
-        <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
-      }>
+      <Route path="/" element={<Layout />}>
         <Route index element={<Dashboard />} />
-        <Route 
-          path="editor" 
-          element={
-            <ProtectedRoute roles={['Editor', 'Admin']}>
-              <GraphEditor />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="editor" element={<GraphEditor />} />
         <Route path="metrics" element={<Metrics />} />
-        <Route 
-          path="datasources" 
-          element={
-            <ProtectedRoute roles={['Admin']}>
-              <DataSources />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="settings" 
-          element={
-            <ProtectedRoute roles={['Admin']}>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="datasources" element={<DataSources />} />
+        <Route path="settings" element={<Settings />} />
         <Route path="help" element={<Help />} />
       </Route>
       

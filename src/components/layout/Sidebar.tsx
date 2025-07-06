@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -12,7 +11,6 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,48 +21,36 @@ const navigationItems = [
   {
     name: 'Dashboard',
     href: '/',
-    icon: LayoutDashboard,
-    roles: ['Viewer', 'Editor', 'Admin']
+    icon: LayoutDashboard
   },
   {
     name: 'Редактор графа',
     href: '/editor',
-    icon: GitBranch,
-    roles: ['Editor', 'Admin']
+    icon: GitBranch
   },
   {
     name: 'Метрики',
     href: '/metrics',
-    icon: BarChart3,
-    roles: ['Viewer', 'Editor', 'Admin']
+    icon: BarChart3
   },
   {
     name: 'Источники данных',
     href: '/datasources',
-    icon: Database,
-    roles: ['Admin']
+    icon: Database
   },
   {
     name: 'Настройки',
     href: '/settings',
-    icon: Settings,
-    roles: ['Admin']
+    icon: Settings
   },
   {
     name: 'Справка',
     href: '/help',
-    icon: HelpCircle,
-    roles: ['Viewer', 'Editor', 'Admin']
+    icon: HelpCircle
   }
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
-
-  const filteredItems = navigationItems.filter(item => 
-    user?.role && item.roles.includes(user.role)
-  );
-
   return (
     <>
       {/* Mobile overlay */}
@@ -100,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Navigation */}
           <nav className="flex-1 p-2">
             <ul className="space-y-1">
-              {filteredItems.map((item) => (
+              {navigationItems.map((item) => (
                 <li key={item.name}>
                   <NavLink
                     to={item.href}

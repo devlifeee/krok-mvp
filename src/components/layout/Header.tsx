@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Bell, User, Settings, LogOut, Menu } from 'lucide-react';
+import { Bell, User, Settings, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +17,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [notifications] = useState(3);
 
   return (
@@ -80,11 +79,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
             <DropdownMenuItem className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               Настройки
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Выйти
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

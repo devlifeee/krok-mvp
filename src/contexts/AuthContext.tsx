@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthState } from '@/types/auth';
 
@@ -19,56 +18,39 @@ const mockUser: User = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    token: null
+    user: mockUser,
+    isAuthenticated: true,
+    token: 'mock_jwt_token'
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('user_data');
+    // Автоматически авторизуем пользователя как Admin
+    const token = 'mock_jwt_token';
+    setAuthState({
+      user: mockUser,
+      isAuthenticated: true,
+      token
+    });
     
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData);
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          token
-        });
-      } catch (error) {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-      }
-    }
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('user_data', JSON.stringify(mockUser));
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication
-    if (email === 'admin@krokos.com' && password === 'admin') {
-      const token = 'mock_jwt_token';
-      setAuthState({
-        user: mockUser,
-        isAuthenticated: true,
-        token
-      });
-      
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user_data', JSON.stringify(mockUser));
-      
-      return true;
-    }
-    return false;
+    // Всегда возвращаем true, так как пользователь уже авторизован
+    return true;
   };
 
   const logout = () => {
+    // При выходе сразу авторизуем снова
+    const token = 'mock_jwt_token';
     setAuthState({
-      user: null,
-      isAuthenticated: false,
-      token: null
+      user: mockUser,
+      isAuthenticated: true,
+      token
     });
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    localStorage.setItem('auth_token', token);
+    localStorage.setItem('user_data', JSON.stringify(mockUser));
   };
 
   const updateUser = (userData: Partial<User>) => {
