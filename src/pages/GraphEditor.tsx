@@ -401,28 +401,28 @@ export const GraphEditor: React.FC = () => {
       }
     };
 
-    // Обновляем состояние
-    setNodes(prevNodes => [...prevNodes, ...nodesToImport]);
-    setLinks(prevLinks => [...prevLinks, ...linksToImport]);
+      // Обновляем состояние
+      setNodes(prevNodes => [...prevNodes, ...nodesToImport]);
+      setLinks(prevLinks => [...prevLinks, ...linksToImport]);
 
-          setSelectedNodeId(null);
-    setSelectedLinkId(null);
-          setHasChanges(true);
+            setSelectedNodeId(null);
+      setSelectedLinkId(null);
+            setHasChanges(true);
 
-    toast.success(`Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`);
+      toast.success(`Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`);
 
-        } catch (error) {
-    console.error('Ошибка импорта:', error);
-    toast.error(
-      error instanceof Error
-        ? `Ошибка импорта: ${error.message}`
-        : 'Неизвестная ошибка при импорте'
-    );
-  }
-};
+          } catch (error) {
+      console.error('Ошибка импорта:', error);
+      toast.error(
+        error instanceof Error
+          ? `Ошибка импорта: ${error.message}`
+          : 'Неизвестная ошибка при импорте'
+      );
+    }
+  };
 
-  input.click();
-};
+    input.click();
+  };
 
 
   const handleZoomIn = () => {
