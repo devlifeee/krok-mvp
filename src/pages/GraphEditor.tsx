@@ -701,7 +701,7 @@ export const GraphEditor: React.FC = () => {
             {nodes.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center text-gray-500">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
                     <Settings className="h-8 w-8" />
                   </div>
                   <h3 className="text-lg font-medium mb-2">
