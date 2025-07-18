@@ -12,6 +12,8 @@ export interface GraphNode {
     network?: number;
   };
   properties: Record<string, any>;
+  input?: boolean | string[]; // true/false или список входов
+  output?: boolean | string[]; // true/false или список выходов
 }
 
 export interface GraphLink {

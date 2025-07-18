@@ -18,6 +18,7 @@ import { NodePalette } from "@/components/graph/NodePalette";
 import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
 import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
 import { toast } from "sonner";
+import { getPortCenter } from "@/lib/portUtils";
 
 // Новый тип для Flow
 interface Flow {
@@ -25,6 +26,17 @@ interface Flow {
   name: string;
   nodes: GraphNodeType[];
   links: GraphLink[];
+}
+
+// Для отслеживания позиции мыши при drag
+function useMousePosition() {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return pos;
 }
 
 export const GraphEditor: React.FC = () => {
@@ -44,11 +56,51 @@ export const GraphEditor: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Для хранения временного состояния drag from output port
+  const [dragPort, setDragPort] = useState<{
+    nodeId: string;
+    portIdx: number;
+  } | null>(null);
+
+  // Начало drag с output порта
+  const handlePortConnectStart = (
+    nodeId: string,
+    portIdx: number,
+    type: "output" | "input"
+  ) => {
+    if (type === "output") {
+      setDragPort({ nodeId, portIdx });
+    }
+  };
+  // Drop на input порт
+  const handlePortConnectEnd = (
+    nodeId: string,
+    portIdx: number,
+    type: "output" | "input"
+  ) => {
+    if (type === "input" && dragPort) {
+      console.log("DROP", { from: dragPort, to: { nodeId, portIdx } });
+      // Создать связь между dragPort (output) и этим input
+      const newLink: GraphLink = {
+        id: generateLinkId(),
+        source: dragPort.nodeId + ":" + dragPort.portIdx,
+        target: nodeId + ":" + portIdx,
+        type: "network",
+        status: "active",
+      };
+      setLinks((prev) => [...prev, newLink]);
+      setHasChanges(true);
+      setDragPort(null);
+      toast.success("Связь между портами создана");
+    }
+  };
+
   // Получить активный поток
   const activeFlow = flows.find((f) => f.id === activeFlowId)!;
   const nodes = activeFlow.nodes;
   const links = activeFlow.links;
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
+  const mousePos = useMousePosition();
 
   // Генерация id
   const generateNodeId = () =>
@@ -307,7 +359,7 @@ const handleImport = () => {
   };
 
   const handleReset = () => {
-    setNodes([]);
+    setNodes(() => []);
     setSelectedNodeId(null);
     setZoom(1);
     setHasChanges(false);
@@ -316,7 +368,7 @@ const handleImport = () => {
 
   const handleClearAll = () => {
     if (nodes.length > 0) {
-      setNodes([]);
+      setNodes(() => []);
       setSelectedNodeId(null);
       setHasChanges(true);
       toast.success("Все узлы удалены");
@@ -510,24 +562,81 @@ const handleImport = () => {
                 </marker>
               </defs>
               {links.map((link) => {
-                const source = nodes.find((n) => n.id === link.source);
-                const target = nodes.find((n) => n.id === link.target);
+                const source = nodes.find(
+                  (n) => n.id === link.source.split(":")[0]
+                );
+                const target = nodes.find(
+                  (n) => n.id === link.target.split(":")[0]
+                );
                 if (!source || !target) return null;
+                const sourceIdx = parseInt(
+                  link.source.split(":")[1] || "0",
+                  10
+                );
+                const targetIdx = parseInt(
+                  link.target.split(":")[1] || "0",
+                  10
+                );
+                // Получаем DOM-элементы узлов
+                const sourceNodeEl = document.querySelector(
+                  `[data-node-id="${source.id}"]`
+                );
+                const targetNodeEl = document.querySelector(
+                  `[data-node-id="${target.id}"]`
+                );
+                let sx, sy, tx, ty;
+                if (sourceNodeEl) {
+                  const portCenter = getPortCenter(
+                    sourceNodeEl as HTMLElement,
+                    "output",
+                    sourceIdx
+                  );
+                  const canvas = document.getElementById("graph-canvas");
+                  const rect = canvas?.getBoundingClientRect();
+                  if (portCenter && rect) {
+                    sx = (portCenter.x - rect.left) / zoom;
+                    sy = (portCenter.y - rect.top) / zoom;
+                  }
+                }
+                if (targetNodeEl) {
+                  const portCenter = getPortCenter(
+                    targetNodeEl as HTMLElement,
+                    "input",
+                    targetIdx
+                  );
+                  const canvas = document.getElementById("graph-canvas");
+                  const rect = canvas?.getBoundingClientRect();
+                  if (portCenter && rect) {
+                    tx = (portCenter.x - rect.left) / zoom;
+                    ty = (portCenter.y - rect.top) / zoom;
+                  }
+                }
+                // fallback если не удалось получить DOM
+                if (sx === undefined || sy === undefined) {
+                  const sourceY =
+                    source.y +
+                    40 +
+                    (source.output && Array.isArray(source.output)
+                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                      : 0);
+                  sx = source.x + 120 + 8;
+                  sy = sourceY + 8;
+                }
+                if (tx === undefined || ty === undefined) {
+                  const targetY =
+                    target.y +
+                    40 +
+                    (target.input && Array.isArray(target.input)
+                      ? (targetIdx - (target.input.length - 1) / 2) * 16
+                      : 0);
+                  tx = target.x + 8;
+                  ty = targetY + 8;
+                }
                 return (
                   <GraphLinkLine
                     key={link.id}
-                    source={{
-                      x: source.x,
-                      y: source.y,
-                      width: 120,
-                      height: 80,
-                    }}
-                    target={{
-                      x: target.x,
-                      y: target.y,
-                      width: 120,
-                      height: 80,
-                    }}
+                    source={{ x: sx, y: sy, width: 0, height: 0 }}
+                    target={{ x: tx, y: ty, width: 0, height: 0 }}
                     color={
                       link.status === "active"
                         ? "#22c55e"
@@ -535,11 +644,109 @@ const handleImport = () => {
                         ? "#ef4444"
                         : "#a3a3a3"
                     }
-                    markerEnd={true}
+                    markerEnd={false}
                     opacity={0.8}
                   />
                 );
               })}
+              {dragPort &&
+                mousePos &&
+                (() => {
+                  const source = nodes.find((n) => n.id === dragPort.nodeId);
+                  if (!source) return null;
+                  const sourceIdx = dragPort.portIdx;
+                  // Получаем DOM-элемент узла-источника
+                  const sourceNodeEl = document.querySelector(
+                    `[data-node-id="${source.id}"]`
+                  );
+                  let startX, startY;
+                  if (sourceNodeEl) {
+                    const portCenter = getPortCenter(
+                      sourceNodeEl as HTMLElement,
+                      "output",
+                      sourceIdx
+                    );
+                    const canvas = document.getElementById("graph-canvas");
+                    const rect = canvas?.getBoundingClientRect();
+                    if (portCenter && rect) {
+                      startX = (portCenter.x - rect.left) / zoom;
+                      startY = (portCenter.y - rect.top) / zoom;
+                    }
+                  }
+                  // Если не удалось получить координаты — fallback
+                  if (startX === undefined || startY === undefined) {
+                    const sourceY =
+                      source.y +
+                      40 +
+                      (source.output && Array.isArray(source.output)
+                        ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                        : 0);
+                    startX = source.x + 120 + 8;
+                    startY = sourceY + 8;
+                  }
+                  // Конец линии: если мышь над input-портом, берём его центр
+                  let endX =
+                    (mousePos.x -
+                      (document
+                        .getElementById("graph-canvas")
+                        ?.getBoundingClientRect().left || 0)) /
+                    zoom;
+                  let endY =
+                    (mousePos.y -
+                      (document
+                        .getElementById("graph-canvas")
+                        ?.getBoundingClientRect().top || 0)) /
+                    zoom;
+                  const overInput = document.elementFromPoint(
+                    mousePos.x,
+                    mousePos.y
+                  );
+                  if (
+                    overInput &&
+                    overInput.getAttribute &&
+                    overInput.getAttribute("data-port") === "input"
+                  ) {
+                    // Ищем родительский узел
+                    let inputNodeEl = overInput.closest("[data-node-id]");
+                    if (inputNodeEl) {
+                      // Определяем индекс input-порта
+                      const inputPorts = inputNodeEl.querySelectorAll(
+                        '[data-port="input"]'
+                      );
+                      let inputIdx = Array.from(inputPorts).findIndex(
+                        (el) => el === overInput
+                      );
+                      if (inputIdx !== -1) {
+                        const portCenter = getPortCenter(
+                          inputNodeEl as HTMLElement,
+                          "input",
+                          inputIdx
+                        );
+                        const canvas = document.getElementById("graph-canvas");
+                        const rect = canvas?.getBoundingClientRect();
+                        if (portCenter && rect) {
+                          endX = (portCenter.x - rect.left) / zoom;
+                          endY = (portCenter.y - rect.top) / zoom;
+                        }
+                      }
+                    }
+                  }
+                  // Bezier control points
+                  const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
+                  const c1x = startX + dx;
+                  const c1y = startY;
+                  const c2x = endX - dx;
+                  const c2y = endY;
+                  return (
+                    <path
+                      d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
+                      fill="none"
+                      stroke="#22c55e"
+                      strokeWidth={3}
+                      opacity={0.7}
+                    />
+                  );
+                })()}
             </svg>
             {nodes.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -571,6 +778,11 @@ const handleImport = () => {
                   }}
                   onDrag={handleDragNode}
                   onDelete={handleDeleteNode}
+                  onPortConnectStart={handlePortConnectStart}
+                  onPortConnectEnd={handlePortConnectEnd}
+                  dragPort={dragPort}
+                  links={links}
+                  nodes={nodes}
                 />
               ))
             )}
