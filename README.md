@@ -199,30 +199,6 @@ flowchart TB
 
 ---
 
-### Примеры тестов
-
-- Проверка рендера страницы:
-  ```js
-  it('рендерит Dashboard', () => {
-    render(<Dashboard />);
-    expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
-  });
-  ```
-- Проверка утилиты:
-  ```js
-  it('объединяет классы', () => {
-    expect(cn('a', 'b')).toBe('a b');
-  });
-  ```
-- E2E сценарий:
-  ```js
-  test('Переход на страницу метрик', async ({ page }) => {
-    await page.goto('/metrics');
-    await expect(page.locator('text=Метрики')).toBeVisible();
-  });
-  ```
-
----
 
 ### Тестирование проекта
 
