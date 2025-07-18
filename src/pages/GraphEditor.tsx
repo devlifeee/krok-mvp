@@ -85,9 +85,7 @@ export const GraphEditor: React.FC = () => {
     handleAddNodeAt,
   } = useGraphEditorState();
 
-  const [activeFlow] = useState<Flow>(
-    flows.find((f) => f.id === activeFlowId)!
-  );
+  const activeFlow = flows.find((f) => f.id === activeFlowId)!;
   const nodes = activeFlow.nodes.map((node) => ({
     ...node,
     health:
@@ -128,137 +126,69 @@ export const GraphEditor: React.FC = () => {
           <NodePalette onAddNode={handleAddNode} />
         </div>
 
-        {/* Main Canvas */}
-        <div className="flex-1 relative bg-white overflow-hidden">
-          <div
-            id="graph-canvas"
-            className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: "top left",
-              backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
-              pointerEvents: "auto", // canvas принимает события
-            }}
-            onDrop={handleCanvasDrop}
-            onDragOver={handleCanvasDragOver}
-          >
-            {/* SVG слой для связей */}
-            <svg
-              className="absolute inset-0 w-full h-full"
-              style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
+        {/* Main Canvas + Properties Panel */}
+        <div className="flex-1 relative bg-white overflow-hidden flex">
+          {/* Canvas + overlay */}
+          <div className="flex-1 relative">
+            {/* Overlay только над canvas */}
+            {modalNode && (
+              <div className="absolute inset-0 bg-black bg-opacity-40 z-[90] transition-opacity duration-300 pointer-events-none" />
+            )}
+            <div
+              id="graph-canvas"
+              className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "top left",
+                backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+                pointerEvents: "auto",
+                zIndex: 10,
+              }}
+              onDrop={handleCanvasDrop}
+              onDragOver={handleCanvasDragOver}
             >
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="10"
-                  refY="3.5"
-                  orient="auto"
-                  markerUnits="strokeWidth"
-                >
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
-                </marker>
-              </defs>
-              {links.map((link) => {
-                const source = nodes.find(
-                  (n) => n.id === link.source.split(":")[0]
-                );
-                const target = nodes.find(
-                  (n) => n.id === link.target.split(":")[0]
-                );
-                if (!source || !target) return null;
-                const sourceIdx = parseInt(
-                  link.source.split(":")[1] || "0",
-                  10
-                );
-                const targetIdx = parseInt(
-                  link.target.split(":")[1] || "0",
-                  10
-                );
-                // Получаем DOM-элементы узлов
-                const sourceNodeEl = document.querySelector(
-                  `[data-node-id="${source.id}"]`
-                );
-                const targetNodeEl = document.querySelector(
-                  `[data-node-id="${target.id}"]`
-                );
-                let sx, sy, tx, ty;
-                if (sourceNodeEl) {
-                  const portCenter = getPortCenter(
-                    sourceNodeEl as HTMLElement,
-                    "output",
-                    sourceIdx
+              {/* SVG слой для связей */}
+              <svg
+                className="absolute inset-0 w-full h-full"
+                style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
+              >
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="10"
+                    refY="3.5"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
+                  </marker>
+                </defs>
+                {links.map((link) => {
+                  const source = nodes.find(
+                    (n) => n.id === link.source.split(":")[0]
                   );
-                  const canvas = document.getElementById("graph-canvas");
-                  const rect = canvas?.getBoundingClientRect();
-                  if (portCenter && rect) {
-                    sx = (portCenter.x - rect.left) / zoom;
-                    sy = (portCenter.y - rect.top) / zoom;
-                  }
-                }
-                if (targetNodeEl) {
-                  const portCenter = getPortCenter(
-                    targetNodeEl as HTMLElement,
-                    "input",
-                    targetIdx
+                  const target = nodes.find(
+                    (n) => n.id === link.target.split(":")[0]
                   );
-                  const canvas = document.getElementById("graph-canvas");
-                  const rect = canvas?.getBoundingClientRect();
-                  if (portCenter && rect) {
-                    tx = (portCenter.x - rect.left) / zoom;
-                    ty = (portCenter.y - rect.top) / zoom;
-                  }
-                }
-                // fallback если не удалось получить DOM
-                if (sx === undefined || sy === undefined) {
-                  const sourceY =
-                    source.y +
-                    40 +
-                    (source.output && Array.isArray(source.output)
-                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
-                      : 0);
-                  sx = source.x + 120 + 8;
-                  sy = sourceY + 8;
-                }
-                if (tx === undefined || ty === undefined) {
-                  const targetY =
-                    target.y +
-                    40 +
-                    (target.input && Array.isArray(target.input)
-                      ? (targetIdx - (target.input.length - 1) / 2) * 16
-                      : 0);
-                  tx = target.x + 8;
-                  ty = targetY + 8;
-                }
-                return (
-                  <GraphLinkLine
-                    key={link.id}
-                    source={{ x: sx, y: sy, width: 0, height: 0 }}
-                    target={{ x: tx, y: ty, width: 0, height: 0 }}
-                    color={
-                      link.status === "active"
-                        ? "#22c55e"
-                        : link.status === "error"
-                        ? "#ef4444"
-                        : "#a3a3a3"
-                    }
-                    markerEnd={false}
-                    opacity={0.8}
-                  />
-                );
-              })}
-              {dragPort &&
-                mousePos &&
-                (() => {
-                  const source = nodes.find((n) => n.id === dragPort.nodeId);
-                  if (!source) return null;
-                  const sourceIdx = dragPort.portIdx;
-                  // Получаем DOM-элемент узла-источника
+                  if (!source || !target) return null;
+                  const sourceIdx = parseInt(
+                    link.source.split(":")[1] || "0",
+                    10
+                  );
+                  const targetIdx = parseInt(
+                    link.target.split(":")[1] || "0",
+                    10
+                  );
+                  // Получаем DOM-элементы узлов
                   const sourceNodeEl = document.querySelector(
                     `[data-node-id="${source.id}"]`
                   );
-                  let startX, startY;
+                  const targetNodeEl = document.querySelector(
+                    `[data-node-id="${target.id}"]`
+                  );
+                  let sx, sy, tx, ty;
                   if (sourceNodeEl) {
                     const portCenter = getPortCenter(
                       sourceNodeEl as HTMLElement,
@@ -268,159 +198,235 @@ export const GraphEditor: React.FC = () => {
                     const canvas = document.getElementById("graph-canvas");
                     const rect = canvas?.getBoundingClientRect();
                     if (portCenter && rect) {
-                      startX = (portCenter.x - rect.left) / zoom;
-                      startY = (portCenter.y - rect.top) / zoom;
+                      sx = (portCenter.x - rect.left) / zoom;
+                      sy = (portCenter.y - rect.top) / zoom;
                     }
                   }
-                  // Если не удалось получить координаты — fallback
-                  if (startX === undefined || startY === undefined) {
+                  if (targetNodeEl) {
+                    const portCenter = getPortCenter(
+                      targetNodeEl as HTMLElement,
+                      "input",
+                      targetIdx
+                    );
+                    const canvas = document.getElementById("graph-canvas");
+                    const rect = canvas?.getBoundingClientRect();
+                    if (portCenter && rect) {
+                      tx = (portCenter.x - rect.left) / zoom;
+                      ty = (portCenter.y - rect.top) / zoom;
+                    }
+                  }
+                  // fallback если не удалось получить DOM
+                  if (sx === undefined || sy === undefined) {
                     const sourceY =
                       source.y +
                       40 +
                       (source.output && Array.isArray(source.output)
                         ? (sourceIdx - (source.output.length - 1) / 2) * 16
                         : 0);
-                    startX = source.x + 120 + 8;
-                    startY = sourceY + 8;
+                    sx = source.x + 120 + 8;
+                    sy = sourceY + 8;
                   }
-                  // Конец линии: если мышь над input-портом, берём его центр
-                  let endX =
-                    (mousePos.x -
-                      (document
-                        .getElementById("graph-canvas")
-                        ?.getBoundingClientRect().left || 0)) /
-                    zoom;
-                  let endY =
-                    (mousePos.y -
-                      (document
-                        .getElementById("graph-canvas")
-                        ?.getBoundingClientRect().top || 0)) /
-                    zoom;
-                  const overInput = document.elementFromPoint(
-                    mousePos.x,
-                    mousePos.y
+                  if (tx === undefined || ty === undefined) {
+                    const targetY =
+                      target.y +
+                      40 +
+                      (target.input && Array.isArray(target.input)
+                        ? (targetIdx - (target.input.length - 1) / 2) * 16
+                        : 0);
+                    tx = target.x + 8;
+                    ty = targetY + 8;
+                  }
+                  return (
+                    <GraphLinkLine
+                      key={link.id}
+                      source={{ x: sx, y: sy, width: 0, height: 0 }}
+                      target={{ x: tx, y: ty, width: 0, height: 0 }}
+                      color={
+                        link.status === "active"
+                          ? "#22c55e"
+                          : link.status === "error"
+                          ? "#ef4444"
+                          : "#a3a3a3"
+                      }
+                      markerEnd={false}
+                      opacity={0.8}
+                    />
                   );
-                  if (
-                    overInput &&
-                    overInput.getAttribute &&
-                    overInput.getAttribute("data-port") === "input"
-                  ) {
-                    // Ищем родительский узел
-                    let inputNodeEl = overInput.closest("[data-node-id]");
-                    if (inputNodeEl) {
-                      // Определяем индекс input-порта
-                      const inputPorts = inputNodeEl.querySelectorAll(
-                        '[data-port="input"]'
+                })}
+                {dragPort &&
+                  mousePos &&
+                  (() => {
+                    const source = nodes.find((n) => n.id === dragPort.nodeId);
+                    if (!source) return null;
+                    const sourceIdx = dragPort.portIdx;
+                    // Получаем DOM-элемент узла-источника
+                    const sourceNodeEl = document.querySelector(
+                      `[data-node-id="${source.id}"]`
+                    );
+                    let startX, startY;
+                    if (sourceNodeEl) {
+                      const portCenter = getPortCenter(
+                        sourceNodeEl as HTMLElement,
+                        "output",
+                        sourceIdx
                       );
-                      let inputIdx = Array.from(inputPorts).findIndex(
-                        (el) => el === overInput
-                      );
-                      if (inputIdx !== -1) {
-                        const portCenter = getPortCenter(
-                          inputNodeEl as HTMLElement,
-                          "input",
-                          inputIdx
+                      const canvas = document.getElementById("graph-canvas");
+                      const rect = canvas?.getBoundingClientRect();
+                      if (portCenter && rect) {
+                        startX = (portCenter.x - rect.left) / zoom;
+                        startY = (portCenter.y - rect.top) / zoom;
+                      }
+                    }
+                    // Если не удалось получить координаты — fallback
+                    if (startX === undefined || startY === undefined) {
+                      const sourceY =
+                        source.y +
+                        40 +
+                        (source.output && Array.isArray(source.output)
+                          ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                          : 0);
+                      startX = source.x + 120 + 8;
+                      startY = sourceY + 8;
+                    }
+                    // Конец линии: если мышь над input-портом, берём его центр
+                    let endX =
+                      (mousePos.x -
+                        (document
+                          .getElementById("graph-canvas")
+                          ?.getBoundingClientRect().left || 0)) /
+                      zoom;
+                    let endY =
+                      (mousePos.y -
+                        (document
+                          .getElementById("graph-canvas")
+                          ?.getBoundingClientRect().top || 0)) /
+                      zoom;
+                    const overInput = document.elementFromPoint(
+                      mousePos.x,
+                      mousePos.y
+                    );
+                    if (
+                      overInput &&
+                      overInput.getAttribute &&
+                      overInput.getAttribute("data-port") === "input"
+                    ) {
+                      // Ищем родительский узел
+                      let inputNodeEl = overInput.closest("[data-node-id]");
+                      if (inputNodeEl) {
+                        // Определяем индекс input-порта
+                        const inputPorts = inputNodeEl.querySelectorAll(
+                          '[data-port="input"]'
                         );
-                        const canvas = document.getElementById("graph-canvas");
-                        const rect = canvas?.getBoundingClientRect();
-                        if (portCenter && rect) {
-                          endX = (portCenter.x - rect.left) / zoom;
-                          endY = (portCenter.y - rect.top) / zoom;
+                        let inputIdx = Array.from(inputPorts).findIndex(
+                          (el) => el === overInput
+                        );
+                        if (inputIdx !== -1) {
+                          const portCenter = getPortCenter(
+                            inputNodeEl as HTMLElement,
+                            "input",
+                            inputIdx
+                          );
+                          const canvas =
+                            document.getElementById("graph-canvas");
+                          const rect = canvas?.getBoundingClientRect();
+                          if (portCenter && rect) {
+                            endX = (portCenter.x - rect.left) / zoom;
+                            endY = (portCenter.y - rect.top) / zoom;
+                          }
                         }
                       }
                     }
-                  }
-                  // Bezier control points
-                  const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
-                  const c1x = startX + dx;
-                  const c1y = startY;
-                  const c2x = endX - dx;
-                  const c2y = endY;
-                  return (
-                    <path
-                      d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth={3}
-                      opacity={0.7}
-                    />
-                  );
-                })()}
-            </svg>
-            {nodes.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center text-gray-500">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
-                    <Settings className="h-8 w-8" />
+                    // Bezier control points
+                    const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
+                    const c1x = startX + dx;
+                    const c1y = startY;
+                    const c2x = endX - dx;
+                    const c2y = endY;
+                    return (
+                      <path
+                        d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth={3}
+                        opacity={0.7}
+                      />
+                    );
+                  })()}
+              </svg>
+              {nodes.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center text-gray-500">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
+                      <Settings className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">
+                      Начните создание графа
+                    </h3>
+                    <p className="text-sm">
+                      Добавьте компоненты из панели инструментов
+                      <br />
+                      или импортируйте существующую топологию
+                    </p>
                   </div>
-                  <h3 className="text-lg font-medium mb-2">
-                    Начните создание графа
-                  </h3>
-                  <p className="text-sm">
-                    Добавьте компоненты из панели инструментов
-                    <br />
-                    или импортируйте существующую топологию
-                  </p>
                 </div>
-              </div>
-            ) : (
-              <>
-                {nodes.map((node) => (
-                  <GraphNode
-                    key={node.id}
-                    node={node}
-                    isSelected={selectedNodeId === node.id}
-                    onSelect={setSelectedNodeId}
-                    onDrag={handleDragNode}
-                    onDelete={handleDeleteNode}
-                    onPortConnectStart={handlePortConnectStart}
-                    onPortConnectEnd={handlePortConnectEnd}
-                    dragPort={dragPort}
-                    links={links}
-                    nodes={nodes}
-                    onDoubleClick={() => setModalNodeId(node.id)}
-                  />
-                ))}
-              </>
-            )}
+              ) : (
+                <>
+                  {nodes.map((node) => (
+                    <GraphNode
+                      key={node.id}
+                      node={node}
+                      isSelected={selectedNodeId === node.id}
+                      onSelect={setSelectedNodeId}
+                      onDrag={handleDragNode}
+                      onDelete={handleDeleteNode}
+                      onPortConnectStart={handlePortConnectStart}
+                      onPortConnectEnd={handlePortConnectEnd}
+                      dragPort={dragPort}
+                      links={links}
+                      nodes={nodes}
+                      onDoubleClick={() => setModalNodeId(node.id)}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+            <CanvasInfoOverlay />
           </div>
-
-          {/* Canvas info overlay */}
-          <CanvasInfoOverlay />
-        </div>
-
-        {/* Properties Panel */}
-        <div className="w-80 p-4 bg-gray-50 border-l border-gray-200">
-          {/* Информация о потоке: редактирование имени */}
-          <div className="mb-4">
-            <div className="text-xs text-gray-500 mb-1">Имя потока</div>
-            <input
-              className="w-full px-2 py-1 border rounded bg-white text-sm font-bold"
-              value={activeFlow.name}
-              onChange={(e) => handleRenameFlow(activeFlow.id, e.target.value)}
+          {/* Properties Panel (всегда видна) */}
+          <div className="w-80 p-4 bg-gray-50 border-l border-gray-200 h-full">
+            {/* Информация о потоке: редактирование имени */}
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 mb-1">Имя потока</div>
+              <input
+                className="w-full px-2 py-1 border rounded bg-white text-sm font-bold"
+                value={activeFlow.name}
+                onChange={(e) =>
+                  handleRenameFlow(activeFlow.id, e.target.value)
+                }
+              />
+            </div>
+            <PropertiesPanel
+              selectedNode={selectedNode}
+              onUpdateNode={handleUpdateNode}
+              onDeleteNode={handleDeleteNode}
+              links={links}
+              onSelectLink={setSelectedLinkId}
+              selectedLinkId={selectedLinkId}
+              flow={activeFlow}
+              isNodeSelected={!!selectedNode}
             />
           </div>
-          <PropertiesPanel
-            selectedNode={selectedNode}
-            onUpdateNode={handleUpdateNode}
-            onDeleteNode={handleDeleteNode}
-            links={links}
-            onSelectLink={setSelectedLinkId}
-            selectedLinkId={selectedLinkId}
-            flow={activeFlow}
-            isNodeSelected={!!selectedNode}
-          />
+          {/* NodeDetailsModal - рендерится только когда открыт */}
+          {modalNode && (
+            <NodeDetailsModal
+              node={modalNode}
+              isOpen={true}
+              onClose={() => setModalNodeId(null)}
+              onUpdate={handleUpdateNode}
+            />
+          )}
         </div>
       </div>
-      {/* Модальное окно для настроек узла */}
-      {modalNode && (
-        <NodeDetailsModal
-          node={modalNode}
-          isOpen={!!modalNode}
-          onClose={() => setModalNodeId(null)}
-          onUpdate={handleUpdateNode}
-        />
-      )}
     </div>
   );
 };
