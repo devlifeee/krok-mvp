@@ -142,18 +142,18 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
       <div
         ref={nodeRef}
         data-node-id={node.id}
-        className={`absolute cursor-move select-none ${
-          isSelected ? "ring-2 ring-green-500" : ""
-        }`}
+        className="absolute cursor-move select-none"
         style={{ left: node.x, top: node.y }}
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         title={`${node.name} - Двойной клик для удаления`}
       >
         <div
-          className={`relative p-3 rounded-lg border-2 min-w-[120px] ${
-            nodeColors[node.type]
-          } ${isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"}`}
+          className={`relative p-3 rounded-lg min-w-[120px] border-2 ${
+            isSelected ? "border-green-500" : "border-gray-200"
+          } ${nodeColors[node.type]} ${
+            isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"
+          }`}
         >
           <InputPorts
             nodeId={node.id}
