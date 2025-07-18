@@ -23,6 +23,7 @@ interface GraphNodeProps {
   dragPort?: { nodeId: string; portIdx: number } | null;
   links?: any[];
   nodes?: any[];
+  onDoubleClick?: () => void;
 }
 
 const nodeIcons = {
@@ -62,6 +63,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     dragPort,
     links,
     nodes,
+    onDoubleClick,
   }) => {
     const IconComponent = nodeIcons[node.type];
     const [isDragging, setIsDragging] = React.useState(false);
@@ -148,6 +150,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
         style={{ left: node.x, top: node.y }}
         onMouseDown={handleMouseDown}
         title={node.name}
+        onDoubleClick={onDoubleClick}
         tabIndex={0}
         onKeyDown={
           isSelected

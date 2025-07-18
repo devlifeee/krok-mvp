@@ -19,6 +19,7 @@ import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
 import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
 import { toast } from "sonner";
 import { getPortCenter } from "@/lib/portUtils";
+import ReactModal from "react-modal";
 
 // Новый тип для Flow
 interface Flow {
@@ -38,6 +39,65 @@ function useMousePosition() {
   }, []);
   return pos;
 }
+
+// Модальное окно для детальных настроек узла
+const NodeDetailsModal: React.FC<{
+  node: GraphNodeType;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (id: string, updates: Partial<GraphNodeType>) => void;
+}> = ({ node, isOpen, onClose, onUpdate }) => {
+  const [localNode, setLocalNode] = React.useState(node);
+  React.useEffect(() => {
+    setLocalNode(node);
+  }, [node]);
+  if (!node) return null;
+  return (
+    <ReactModal
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      ariaHideApp={false}
+      className="bg-white rounded-lg p-6 max-w-lg mx-auto mt-24 shadow-xl outline-none"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+    >
+      <h2 className="text-xl font-bold mb-4">Настройки узла</h2>
+      <div className="mb-2">
+        <label className="block text-xs text-gray-500 mb-1">ID</label>
+        <div className="font-mono text-sm mb-2">{localNode.id}</div>
+      </div>
+      <div className="mb-2">
+        <label className="block text-xs text-gray-500 mb-1">Тип</label>
+        <div className="font-mono text-sm mb-2">{localNode.type}</div>
+      </div>
+      <div className="mb-2">
+        <label className="block text-xs text-gray-500 mb-1">Название</label>
+        <input
+          className="border rounded px-2 py-1 w-full"
+          value={localNode.name}
+          onChange={(e) => setLocalNode({ ...localNode, name: e.target.value })}
+        />
+      </div>
+      {/* Можно добавить другие поля по необходимости */}
+      <div className="flex gap-2 mt-4">
+        <button
+          className="px-4 py-2 rounded bg-green-600 text-white font-bold"
+          onClick={() => {
+            onUpdate(localNode.id, localNode);
+            onClose();
+          }}
+        >
+          Сохранить
+        </button>
+        <button
+          className="px-4 py-2 rounded bg-gray-200 text-gray-800 font-bold"
+          onClick={onClose}
+        >
+          Отмена
+        </button>
+      </div>
+    </ReactModal>
+  );
+};
 
 export const GraphEditor: React.FC = () => {
   // flows: массив потоков
@@ -60,6 +120,17 @@ export const GraphEditor: React.FC = () => {
     nodeId: string;
     portIdx: number;
   } | null>(null);
+
+  // Для модального окна настроек узла
+  const [modalNodeId, setModalNodeId] = useState<string | null>(null);
+
+  // Получить активный поток
+  const activeFlow = flows.find((f) => f.id === activeFlowId)!;
+  const nodes = activeFlow.nodes;
+  const links = activeFlow.links;
+  const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
+  const mousePos = useMousePosition();
+  const modalNode = nodes.find((n) => n.id === modalNodeId) || null;
 
   // Начало drag с output порта
   const handlePortConnectStart = (
@@ -93,13 +164,6 @@ export const GraphEditor: React.FC = () => {
       toast.success("Связь между портами создана");
     }
   };
-
-  // Получить активный поток
-  const activeFlow = flows.find((f) => f.id === activeFlowId)!;
-  const nodes = activeFlow.nodes;
-  const links = activeFlow.links;
-  const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
-  const mousePos = useMousePosition();
 
   // Генерация id
   const generateNodeId = () =>
@@ -688,21 +752,24 @@ export const GraphEditor: React.FC = () => {
                 </div>
               </div>
             ) : (
-              nodes.map((node) => (
-                <GraphNode
-                  key={node.id}
-                  node={node}
-                  isSelected={selectedNodeId === node.id}
-                  onSelect={setSelectedNodeId}
-                  onDrag={handleDragNode}
-                  onDelete={handleDeleteNode}
-                  onPortConnectStart={handlePortConnectStart}
-                  onPortConnectEnd={handlePortConnectEnd}
-                  dragPort={dragPort}
-                  links={links}
-                  nodes={nodes}
-                />
-              ))
+              <>
+                {nodes.map((node) => (
+                  <GraphNode
+                    key={node.id}
+                    node={node}
+                    isSelected={selectedNodeId === node.id}
+                    onSelect={setSelectedNodeId}
+                    onDrag={handleDragNode}
+                    onDelete={handleDeleteNode}
+                    onPortConnectStart={handlePortConnectStart}
+                    onPortConnectEnd={handlePortConnectEnd}
+                    dragPort={dragPort}
+                    links={links}
+                    nodes={nodes}
+                    onDoubleClick={() => setModalNodeId(node.id)}
+                  />
+                ))}
+              </>
             )}
           </div>
 
@@ -735,6 +802,15 @@ export const GraphEditor: React.FC = () => {
           />
         </div>
       </div>
+      {/* Модальное окно для настроек узла */}
+      {modalNode && (
+        <NodeDetailsModal
+          node={modalNode}
+          isOpen={!!modalNode}
+          onClose={() => setModalNodeId(null)}
+          onUpdate={handleUpdateNode}
+        />
+      )}
     </div>
   );
 };
