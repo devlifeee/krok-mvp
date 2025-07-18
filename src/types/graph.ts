@@ -1,6 +1,29 @@
+export type NodeType =
+  | "server"
+  | "database"
+  | "network"
+  | "service"
+  | "api"
+  | "storage"
+  | "inject"
+  | "debug"
+  | "function"
+  | "change"
+  | "switch"
+  | "template"
+  | "mqtt"
+  | "http"
+  | "file"
+  | "rbe"
+  | "serial"
+  | "json"
+  | "split"
+  | "delay"
+  | "link";
+
 export interface GraphNode {
   id: string;
-  type: "server" | "database" | "network" | "service" | "api" | "storage";
+  type: NodeType;
   name: string;
   x: number;
   y: number;

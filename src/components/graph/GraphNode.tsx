@@ -3,6 +3,30 @@ import { Server, Database, Network, Settings, Cloud } from "lucide-react";
 import { GraphNode as GraphNodeType } from "@/types/graph";
 import { InputPorts } from "./InputPorts";
 import { OutputPorts } from "./OutputPorts";
+// Nodes
+import {
+  InjectNode,
+  DebugNode,
+  FunctionNode,
+  ChangeNode,
+  SwitchNode,
+  TemplateNode,
+  MQTTNode,
+  HTTPNode,
+  FileNode,
+  RBENode,
+  SerialNode,
+  JSONParserNode,
+  SplitJoinNode,
+  DelayNode,
+  LinkNode,
+  SystemServerNode,
+  SystemDatabaseNode,
+  SystemNetworkNode,
+  SystemServiceNode,
+  SystemApiNode,
+  SystemStorageNode,
+} from "./nodes";
 
 interface GraphNodeProps {
   node: GraphNodeType;
@@ -142,6 +166,86 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
       }
     }, [isSelected]);
 
+    // Выбор компонента для отображения узла
+    let NodeContent: React.ReactNode = null;
+    switch (node.type) {
+      case "inject":
+        NodeContent = <InjectNode name={node.name} />;
+        break;
+      case "debug":
+        NodeContent = <DebugNode name={node.name} />;
+        break;
+      case "function":
+        NodeContent = <FunctionNode name={node.name} />;
+        break;
+      case "change":
+        NodeContent = <ChangeNode name={node.name} />;
+        break;
+      case "switch":
+        NodeContent = <SwitchNode name={node.name} />;
+        break;
+      case "template":
+        NodeContent = <TemplateNode name={node.name} />;
+        break;
+      case "mqtt":
+        NodeContent = <MQTTNode name={node.name} />;
+        break;
+      case "http":
+        NodeContent = <HTTPNode name={node.name} />;
+        break;
+      case "file":
+        NodeContent = <FileNode name={node.name} />;
+        break;
+      case "rbe":
+        NodeContent = <RBENode name={node.name} />;
+        break;
+      case "serial":
+        NodeContent = <SerialNode name={node.name} />;
+        break;
+      case "json":
+        NodeContent = <JSONParserNode name={node.name} />;
+        break;
+      case "split":
+        NodeContent = <SplitJoinNode name={node.name} />;
+        break;
+      case "delay":
+        NodeContent = <DelayNode name={node.name} />;
+        break;
+      case "link":
+        NodeContent = <LinkNode name={node.name} />;
+        break;
+      case "server":
+        NodeContent = (
+          <SystemServerNode name={node.name} health={node.health} />
+        );
+        break;
+      case "database":
+        NodeContent = (
+          <SystemDatabaseNode name={node.name} health={node.health} />
+        );
+        break;
+      case "network":
+        NodeContent = (
+          <SystemNetworkNode name={node.name} health={node.health} />
+        );
+        break;
+      case "service":
+        NodeContent = (
+          <SystemServiceNode name={node.name} health={node.health} />
+        );
+        break;
+      case "api":
+        NodeContent = <SystemApiNode name={node.name} health={node.health} />;
+        break;
+      case "storage":
+        NodeContent = (
+          <SystemStorageNode name={node.name} health={node.health} />
+        );
+        break;
+      default:
+        NodeContent = null;
+    }
+
     return (
       <div
         ref={nodeRef}
@@ -166,7 +270,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
         <div
           className={`relative p-3 rounded-lg min-w-[120px] border-2 ${
             isSelected ? "border-green-500" : "border-gray-200"
-          } ${nodeColors[node.type]} ${
+          } ${nodeColors[node.type] || "bg-gray-100 border-gray-200"} ${
             isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"
           }`}
         >
@@ -180,29 +284,46 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             links={links}
             nodes={nodes}
           />
-          {/* Icon and name */}
-          <div className="flex flex-col items-center space-y-2">
-            <IconComponent className="h-8 w-8 text-black" />
-            <span className="text-sm font-bold text-black drop-shadow">
-              {node.name}
-            </span>
-          </div>
-          {/* Health bar */}
-          <div className="mt-2 w-full bg-gray-300 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full ${
-                node.health > 80
-                  ? "bg-green-500"
-                  : node.health > 60
-                  ? "bg-yellow-500"
-                  : "bg-red-500"
-              }`}
-              style={{ width: `${node.health}%` }}
-            />
-          </div>
-          <div className="text-xs text-black mt-1 text-center font-semibold">
-            {node.health}% здоровье
-          </div>
+          {NodeContent ? (
+            <div className="flex flex-col items-center space-y-2">
+              {NodeContent}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center space-y-2">
+              {IconComponent && (
+                <IconComponent className="h-8 w-8 text-black" />
+              )}
+              <span className="text-sm font-bold text-black drop-shadow">
+                {node.name}
+              </span>
+            </div>
+          )}
+          {![
+            "server",
+            "database",
+            "network",
+            "service",
+            "api",
+            "storage",
+          ].includes(node.type) && (
+            <div className="mt-1 w-full flex items-center gap-1">
+              <div className="flex-1 bg-gray-300 rounded-full h-1.5">
+                <div
+                  className={`h-1.5 rounded-full ${
+                    node.health > 80
+                      ? "bg-green-500"
+                      : node.health > 60
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${node.health}%` }}
+                />
+              </div>
+              <span className="text-[10px] text-gray-700 font-semibold ml-1">
+                {node.health}%
+              </span>
+            </div>
+          )}
           <OutputPorts
             nodeId={node.id}
             ports={node.output}

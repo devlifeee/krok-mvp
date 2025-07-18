@@ -327,7 +327,7 @@ export const GraphEditor: React.FC = () => {
     try {
       // Читаем содержимое файла
       const fileContent = await file.text();
-      
+
       // Парсим JSON
       let parsedData;
       try {
@@ -339,7 +339,7 @@ export const GraphEditor: React.FC = () => {
       // Проверяем поддерживаемые форматы
       const isArrayFormat = Array.isArray(parsedData);
       const isObjectFormat = parsedData && typeof parsedData === 'object' && Array.isArray(parsedData.nodes);
-      
+
       if (!isArrayFormat && !isObjectFormat) {
         throw new Error('Формат файла не поддерживается. Ожидается: массив узлов или объект с полями nodes/links');
       }
@@ -358,23 +358,48 @@ export const GraphEditor: React.FC = () => {
         throw new Error('Связи должны быть массивом');
       }
 
-      // Валидация узлов
-      const invalidNode = nodesToImport.find(node => 
-        !node.id || !node.type || typeof node.x !== 'number' || typeof node.y !== 'number'
-      );
-      
-      if (invalidNode) {
-        throw new Error(`Некорректный узел: ${JSON.stringify(invalidNode)}`);
-      }
+        // Валидация узлов
+        const invalidNode = nodesToImport.find(
+          (node) =>
+            !node.id ||
+            !node.type ||
+            typeof node.x !== "number" ||
+            typeof node.y !== "number"
+        );
 
-      // Валидация связей
-      const invalidLink = linksToImport.find(link => 
-        !link.source || !link.target || !link.id
-      );
-      
-      if (invalidLink) {
-        throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
+        if (invalidNode) {
+          throw new Error(`Некорректный узел: ${JSON.stringify(invalidNode)}`);
+        }
+
+        // Валидация связей
+        const invalidLink = linksToImport.find(
+          (link) => !link.source || !link.target || !link.id
+        );
+
+        if (invalidLink) {
+          throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
+        }
+
+        // Обновляем состояние
+        setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
+        setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
+
+        setSelectedNodeId(null);
+        setSelectedLinkId(null);
+        setHasChanges(true);
+
+        toast.success(
+          `Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`
+        );
+      } catch (error) {
+        console.error("Ошибка импорта:", error);
+        toast.error(
+          error instanceof Error
+            ? `Ошибка импорта: ${error.message}`
+            : "Неизвестная ошибка при импорте"
+        );
       }
+    };
 
       // Обновляем состояние
       setNodes(prevNodes => [...prevNodes, ...nodesToImport]);
@@ -389,7 +414,7 @@ export const GraphEditor: React.FC = () => {
           } catch (error) {
       console.error('Ошибка импорта:', error);
       toast.error(
-        error instanceof Error 
+        error instanceof Error
           ? `Ошибка импорта: ${error.message}`
           : 'Неизвестная ошибка при импорте'
       );
@@ -444,7 +469,7 @@ export const GraphEditor: React.FC = () => {
     const newNode: GraphNodeType = {
       id: generateNodeId(),
       type,
-      name: `Новый ${type}`,
+      name: type.charAt(0).toUpperCase() + type.slice(1),
       x,
       y,
       health: Math.floor(Math.random() * 100),
