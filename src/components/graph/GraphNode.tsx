@@ -170,49 +170,49 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     let NodeContent: React.ReactNode = null;
     switch (node.type) {
       case "inject":
-        NodeContent = <InjectNode name={node.name} />;
+        NodeContent = <InjectNode name={node.name} health={node.health} />;
         break;
       case "debug":
-        NodeContent = <DebugNode name={node.name} />;
+        NodeContent = <DebugNode name={node.name} health={node.health} />;
         break;
       case "function":
-        NodeContent = <FunctionNode name={node.name} />;
+        NodeContent = <FunctionNode name={node.name} health={node.health} />;
         break;
       case "change":
-        NodeContent = <ChangeNode name={node.name} />;
+        NodeContent = <ChangeNode name={node.name} health={node.health} />;
         break;
       case "switch":
-        NodeContent = <SwitchNode name={node.name} />;
+        NodeContent = <SwitchNode name={node.name} health={node.health} />;
         break;
       case "template":
-        NodeContent = <TemplateNode name={node.name} />;
+        NodeContent = <TemplateNode name={node.name} health={node.health} />;
         break;
       case "mqtt":
-        NodeContent = <MQTTNode name={node.name} />;
+        NodeContent = <MQTTNode name={node.name} health={node.health} />;
         break;
       case "http":
-        NodeContent = <HTTPNode name={node.name} />;
+        NodeContent = <HTTPNode name={node.name} health={node.health} />;
         break;
       case "file":
-        NodeContent = <FileNode name={node.name} />;
+        NodeContent = <FileNode name={node.name} health={node.health} />;
         break;
       case "rbe":
-        NodeContent = <RBENode name={node.name} />;
+        NodeContent = <RBENode name={node.name} health={node.health} />;
         break;
       case "serial":
-        NodeContent = <SerialNode name={node.name} />;
+        NodeContent = <SerialNode name={node.name} health={node.health} />;
         break;
       case "json":
-        NodeContent = <JSONParserNode name={node.name} />;
+        NodeContent = <JSONParserNode name={node.name} health={node.health} />;
         break;
       case "split":
-        NodeContent = <SplitJoinNode name={node.name} />;
+        NodeContent = <SplitJoinNode name={node.name} health={node.health} />;
         break;
       case "delay":
-        NodeContent = <DelayNode name={node.name} />;
+        NodeContent = <DelayNode name={node.name} health={node.health} />;
         break;
       case "link":
-        NodeContent = <LinkNode name={node.name} />;
+        NodeContent = <LinkNode name={node.name} health={node.health} />;
         break;
       case "server":
         NodeContent = (
@@ -267,71 +267,35 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             : undefined
         }
       >
-        <div
-          className={`relative p-3 rounded-lg min-w-[120px] border-2 ${
-            isSelected ? "border-green-500" : "border-gray-200"
-          } ${nodeColors[node.type] || "bg-gray-100 border-gray-200"} ${
-            isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"
-          }`}
-        >
-          <InputPorts
-            nodeId={node.id}
-            ports={node.input}
-            onPortConnectStart={(nid, idx) =>
-              onPortConnectEnd && onPortConnectEnd(nid, idx, "input")
-            }
-            dragPort={dragPort}
-            links={links}
-            nodes={nodes}
-          />
-          {NodeContent ? (
-            <div className="flex flex-col items-center space-y-2">
-              {NodeContent}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center space-y-2">
-              {IconComponent && (
-                <IconComponent className="h-8 w-8 text-black" />
-              )}
-              <span className="text-sm font-bold text-black drop-shadow">
-                {node.name}
-              </span>
-            </div>
-          )}
-          {![
-            "server",
-            "database",
-            "network",
-            "service",
-            "api",
-            "storage",
-          ].includes(node.type) && (
-            <div className="mt-1 w-full flex items-center gap-1">
-              <div className="flex-1 bg-gray-300 rounded-full h-1.5">
-                <div
-                  className={`h-1.5 rounded-full ${
-                    node.health > 80
-                      ? "bg-green-500"
-                      : node.health > 60
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{ width: `${node.health}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-gray-700 font-semibold ml-1">
-                {node.health}%
-              </span>
-            </div>
-          )}
-          <OutputPorts
-            nodeId={node.id}
-            ports={node.output}
-            onPortConnectStart={(nid, idx) =>
-              onPortConnectStart && onPortConnectStart(nid, idx, "output")
-            }
-          />
-        </div>
+        <InputPorts
+          nodeId={node.id}
+          ports={node.input}
+          onPortConnectStart={(nid, idx) =>
+            onPortConnectEnd && onPortConnectEnd(nid, idx, "input")
+          }
+          dragPort={dragPort}
+          links={links}
+          nodes={nodes}
+        />
+        {NodeContent ? (
+          <div className="flex flex-col items-center space-y-2">
+            {NodeContent}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center space-y-2">
+            {IconComponent && <IconComponent className="h-8 w-8 text-black" />}
+            <span className="text-sm font-bold text-black drop-shadow">
+              {node.name}
+            </span>
+          </div>
+        )}
+        <OutputPorts
+          nodeId={node.id}
+          ports={node.output}
+          onPortConnectStart={(nid, idx) =>
+            onPortConnectStart && onPortConnectStart(nid, idx, "output")
+          }
+        />
       </div>
     );
   }

@@ -99,16 +99,42 @@ const NodeDetailsModal: React.FC<{
   );
 };
 
+// Функция для массового присваивания health всем нодам в flows
+function ensureNodesHaveHealth(flows: Flow[]): Flow[] {
+  return flows.map((flow) => ({
+    ...flow,
+    nodes: flow.nodes.map((node) => ({
+      ...node,
+      health:
+        typeof node.health === "number"
+          ? node.health
+          : Math.floor(Math.random() * 100),
+    })),
+  }));
+}
+// Функция для массива нод
+function ensureNodeListHasHealth(nodes: GraphNodeType[]): GraphNodeType[] {
+  return nodes.map((node) => ({
+    ...node,
+    health:
+      typeof node.health === "number"
+        ? node.health
+        : Math.floor(Math.random() * 100),
+  }));
+}
+
 export const GraphEditor: React.FC = () => {
   // flows: массив потоков
-  const [flows, setFlows] = useState<Flow[]>([
-    {
-      id: "flow_1",
-      name: "Поток 1",
-      nodes: [],
-      links: [],
-    },
-  ]);
+  const [flows, setFlows] = useState<Flow[]>(
+    ensureNodesHaveHealth([
+      {
+        id: "flow_1",
+        name: "Поток 1",
+        nodes: [],
+        links: [],
+      },
+    ])
+  );
   const [activeFlowId, setActiveFlowId] = useState("flow_1");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
@@ -126,7 +152,13 @@ export const GraphEditor: React.FC = () => {
 
   // Получить активный поток
   const activeFlow = flows.find((f) => f.id === activeFlowId)!;
-  const nodes = activeFlow.nodes;
+  const nodes = activeFlow.nodes.map((node) => ({
+    ...node,
+    health:
+      typeof node.health === "number"
+        ? node.health
+        : Math.floor(Math.random() * 100),
+  }));
   const links = activeFlow.links;
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
   const mousePos = useMousePosition();
@@ -207,15 +239,21 @@ export const GraphEditor: React.FC = () => {
   // Все функции для nodes/links теперь работают только с nodes/links активного потока
   const setNodes = (updater: (prev: GraphNodeType[]) => GraphNodeType[]) => {
     setFlows((prev) =>
-      prev.map((f) =>
-        f.id === activeFlowId ? { ...f, nodes: updater(f.nodes) } : f
+      ensureNodesHaveHealth(
+        prev.map((f) =>
+          f.id === activeFlowId
+            ? { ...f, nodes: ensureNodeListHasHealth(updater(f.nodes)) }
+            : f
+        )
       )
     );
   };
   const setLinks = (updater: (prev: GraphLink[]) => GraphLink[]) => {
     setFlows((prev) =>
-      prev.map((f) =>
-        f.id === activeFlowId ? { ...f, links: updater(f.links) } : f
+      ensureNodesHaveHealth(
+        prev.map((f) =>
+          f.id === activeFlowId ? { ...f, links: updater(f.links) } : f
+        )
       )
     );
   };
@@ -385,8 +423,10 @@ export const GraphEditor: React.FC = () => {
           throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
         }
 
-        // Обновляем состояние
-        setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
+        // Обновляем состояние с присвоением health
+        setNodes((prevNodes) =>
+          ensureNodeListHasHealth([...prevNodes, ...nodesToImport])
+        );
         setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
         setSelectedNodeId(null);
         setSelectedLinkId(null);
