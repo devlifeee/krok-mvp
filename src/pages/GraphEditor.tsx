@@ -316,7 +316,7 @@ export const GraphEditor: React.FC = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-
+  
   input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) {
@@ -404,13 +404,13 @@ export const GraphEditor: React.FC = () => {
       // Обновляем состояние
       setNodes(prevNodes => [...prevNodes, ...nodesToImport]);
       setLinks(prevLinks => [...prevLinks, ...linksToImport]);
-
+      
             setSelectedNodeId(null);
       setSelectedLinkId(null);
             setHasChanges(true);
-
+      
       toast.success(`Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`);
-
+      
           } catch (error) {
       console.error('Ошибка импорта:', error);
       toast.error(
@@ -423,7 +423,6 @@ export const GraphEditor: React.FC = () => {
 
     input.click();
   };
-
 
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.1, 2));
