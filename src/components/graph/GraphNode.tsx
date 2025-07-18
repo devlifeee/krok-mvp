@@ -3,6 +3,7 @@ import { Server, Database, Network, Settings, Cloud } from "lucide-react";
 import { GraphNode as GraphNodeType } from "@/types/graph";
 import { InputPorts } from "./InputPorts";
 import { OutputPorts } from "./OutputPorts";
+// Nodes
 import {
   InjectNode,
   DebugNode,
