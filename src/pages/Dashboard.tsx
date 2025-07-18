@@ -191,15 +191,7 @@ export const Dashboard: React.FC = () => {
               <div className="text-left">
                 <div className="font-medium">Импорт данных</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  Загрузить топологию из Kubernetes
-                </div>
-              </div>
-            </Button>
-            <Button variant="outline" className="justify-start h-auto p-4">
-              <div className="text-left">
-                <div className="font-medium">Настроить алерты</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  Управление уведомлениями и порогами
+                  Загрузить вручную или через json
                 </div>
               </div>
             </Button>
