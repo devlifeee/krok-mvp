@@ -20,7 +20,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-
 @app.route('/node', methods=['POST'])
 def add_node():
     data = request.json
