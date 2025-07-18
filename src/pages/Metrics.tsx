@@ -11,7 +11,7 @@ import {
   Database,
   Network,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/sonner";
 
 const Metrics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);

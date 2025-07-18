@@ -12,7 +12,7 @@ import {
   Video,
   Download,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 const Help: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");

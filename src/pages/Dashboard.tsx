@@ -12,7 +12,7 @@ import {
   Plus,
   RefreshCw
 } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from "sonner";
 
 // Генератор случайных данных для метрик
 const generateRandomMetrics = () => {
@@ -65,10 +65,7 @@ export const Dashboard: React.FC = () => {
       setMetrics(generateRandomMetrics());
       setAlerts(generateRandomAlerts());
       setIsRefreshing(false);
-      toast({
-        title: "Данные обновлены",
-        description: "Последние метрики загружены",
-      });
+      toast.success("Данные обновлены. Последние метрики загружены");
     }, 1000);
   };
 
