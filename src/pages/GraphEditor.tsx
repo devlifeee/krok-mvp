@@ -311,7 +311,7 @@ export const GraphEditor: React.FC = () => {
 
     toast.success("Граф экспортирован");
   };
-  // solve conflict
+
   const handleImport = () => {
     const input = document.createElement("input");
     input.type = "file";
