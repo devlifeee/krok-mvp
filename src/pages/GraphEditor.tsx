@@ -213,12 +213,24 @@ export const GraphEditor: React.FC = () => {
     setSelectedNodeId(nodeId);
   }, []);
 
-  const handleDragNode = useCallback((nodeId: string, x: number, y: number) => {
-    setNodes((prev) =>
-      prev.map((node) => (node.id === nodeId ? { ...node, x, y } : node))
-    );
-    setHasChanges(true);
-  }, []);
+  const handleDragNode = useCallback(
+    (nodeId: string, x: number, y: number) => {
+      setFlows((prev) =>
+        prev.map((flow) =>
+          flow.id === activeFlowId
+            ? {
+                ...flow,
+                nodes: flow.nodes.map((node) =>
+                  node.id === nodeId ? { ...node, x, y } : node
+                ),
+              }
+            : flow
+        )
+      );
+      setHasChanges(true);
+    },
+    [activeFlowId]
+  );
 
   const handleUpdateNode = useCallback(
     (nodeId: string, updates: Partial<GraphNodeType>) => {
@@ -471,7 +483,7 @@ export const GraphEditor: React.FC = () => {
         <div className="flex-1 relative bg-white overflow-hidden">
           <div
             id="graph-canvas"
-            className="absolute inset-0 bg-grid-pattern"
+            className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
             style={{
               transform: `scale(${zoom})`,
               transformOrigin: "top left",
