@@ -417,14 +417,24 @@ export const GraphEditor: React.FC = () => {
             />
           </div>
           {/* NodeDetailsModal - рендерится только когда открыт */}
-          {modalNode && (
-            <NodeDetailsModal
-              node={modalNode}
-              isOpen={true}
-              onClose={() => setModalNodeId(null)}
-              onUpdate={handleUpdateNode}
-            />
-          )}
+          <NodeDetailsModal
+            node={
+              modalNode ||
+              nodes[0] || {
+                id: "",
+                type: "inject" as any,
+                name: "",
+                x: 0,
+                y: 0,
+                health: 0,
+                status: "unknown" as any,
+                properties: {},
+              }
+            }
+            isOpen={!!modalNode}
+            onClose={() => setModalNodeId(null)}
+            onUpdate={handleUpdateNode}
+          />
         </div>
       </div>
     </div>
