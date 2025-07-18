@@ -1,6 +1,8 @@
 import React from "react";
 import { Server, Database, Network, Settings, Cloud } from "lucide-react";
 import { GraphNode as GraphNodeType } from "@/types/graph";
+import { InputPorts } from "./InputPorts";
+import { OutputPorts } from "./OutputPorts";
 
 interface GraphNodeProps {
   node: GraphNodeType;
@@ -8,6 +10,16 @@ interface GraphNodeProps {
   onSelect: (nodeId: string) => void;
   onDrag: (nodeId: string, x: number, y: number) => void;
   onDelete: (nodeId: string) => void;
+  onPortConnectStart?: (
+    nodeId: string,
+    portIdx: number,
+    type: "input" | "output"
+  ) => void;
+  onPortConnectEnd?: (
+    nodeId: string,
+    portIdx: number,
+    type: "input" | "output"
+  ) => void;
 }
 
 const nodeIcons = {
@@ -36,7 +48,15 @@ const statusColors = {
 };
 
 export const GraphNode: React.FC<GraphNodeProps> = React.memo(
-  ({ node, isSelected, onSelect, onDrag, onDelete }) => {
+  ({
+    node,
+    isSelected,
+    onSelect,
+    onDrag,
+    onDelete,
+    onPortConnectStart,
+    onPortConnectEnd,
+  }) => {
     const IconComponent = nodeIcons[node.type];
     const [isDragging, setIsDragging] = React.useState(false);
     const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
@@ -125,6 +145,13 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             nodeColors[node.type]
           } ${isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"}`}
         >
+          <InputPorts
+            nodeId={node.id}
+            ports={node.input}
+            onPortConnectStart={(nid, idx) =>
+              onPortConnectEnd && onPortConnectEnd(nid, idx, "input")
+            }
+          />
           {/* Status indicator */}
           <div
             className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
@@ -154,6 +181,13 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
           <div className="text-xs text-black mt-1 text-center font-semibold">
             {node.health}% здоровье
           </div>
+          <OutputPorts
+            nodeId={node.id}
+            ports={node.output}
+            onPortConnectStart={(nid, idx) =>
+              onPortConnectStart && onPortConnectStart(nid, idx, "output")
+            }
+          />
         </div>
       </div>
     );

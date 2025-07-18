@@ -27,6 +27,17 @@ interface Flow {
   links: GraphLink[];
 }
 
+// Для отслеживания позиции мыши при drag
+function useMousePosition() {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, []);
+  return pos;
+}
+
 export const GraphEditor: React.FC = () => {
   // flows: массив потоков
   const [flows, setFlows] = useState<Flow[]>([
@@ -44,11 +55,50 @@ export const GraphEditor: React.FC = () => {
   const [zoom, setZoom] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Для хранения временного состояния drag from output port
+  const [dragPort, setDragPort] = useState<{
+    nodeId: string;
+    portIdx: number;
+  } | null>(null);
+
+  // Начало drag с output порта
+  const handlePortConnectStart = (
+    nodeId: string,
+    portIdx: number,
+    type: "output" | "input"
+  ) => {
+    if (type === "output") {
+      setDragPort({ nodeId, portIdx });
+    }
+  };
+  // Drop на input порт
+  const handlePortConnectEnd = (
+    nodeId: string,
+    portIdx: number,
+    type: "output" | "input"
+  ) => {
+    if (type === "input" && dragPort) {
+      // Создать связь между dragPort (output) и этим input
+      const newLink: GraphLink = {
+        id: generateLinkId(),
+        source: dragPort.nodeId + ":" + dragPort.portIdx,
+        target: nodeId + ":" + portIdx,
+        type: "network",
+        status: "active",
+      };
+      setLinks((prev) => [...prev, newLink]);
+      setHasChanges(true);
+      setDragPort(null);
+      toast.success("Связь между портами создана");
+    }
+  };
+
   // Получить активный поток
   const activeFlow = flows.find((f) => f.id === activeFlowId)!;
   const nodes = activeFlow.nodes;
   const links = activeFlow.links;
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
+  const mousePos = useMousePosition();
 
   // Генерация id
   const generateNodeId = () =>
@@ -245,7 +295,7 @@ export const GraphEditor: React.FC = () => {
   };
 
   const handleReset = () => {
-    setNodes([]);
+    setNodes(() => []);
     setSelectedNodeId(null);
     setZoom(1);
     setHasChanges(false);
@@ -254,7 +304,7 @@ export const GraphEditor: React.FC = () => {
 
   const handleClearAll = () => {
     if (nodes.length > 0) {
-      setNodes([]);
+      setNodes(() => []);
       setSelectedNodeId(null);
       setHasChanges(true);
       toast.success("Все узлы удалены");
@@ -448,24 +498,44 @@ export const GraphEditor: React.FC = () => {
                 </marker>
               </defs>
               {links.map((link) => {
-                const source = nodes.find((n) => n.id === link.source);
-                const target = nodes.find((n) => n.id === link.target);
+                const source = nodes.find(
+                  (n) => n.id === link.source.split(":")[0]
+                );
+                const target = nodes.find(
+                  (n) => n.id === link.target.split(":")[0]
+                );
                 if (!source || !target) return null;
+                // Для портов: вычисляем смещение по индексу
+                const sourceIdx = parseInt(
+                  link.source.split(":")[1] || "0",
+                  10
+                );
+                const targetIdx = parseInt(
+                  link.target.split(":")[1] || "0",
+                  10
+                );
+                const sourceY =
+                  source.y +
+                  40 +
+                  (source.output && Array.isArray(source.output)
+                    ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                    : 0);
+                const targetY =
+                  target.y +
+                  40 +
+                  (target.input && Array.isArray(target.input)
+                    ? (targetIdx - (target.input.length - 1) / 2) * 16
+                    : 0);
                 return (
                   <GraphLinkLine
                     key={link.id}
                     source={{
-                      x: source.x,
-                      y: source.y,
-                      width: 120,
-                      height: 80,
+                      x: source.x + 120,
+                      y: sourceY,
+                      width: 0,
+                      height: 0,
                     }}
-                    target={{
-                      x: target.x,
-                      y: target.y,
-                      width: 120,
-                      height: 80,
-                    }}
+                    target={{ x: target.x, y: targetY, width: 0, height: 0 }}
                     color={
                       link.status === "active"
                         ? "#22c55e"
@@ -478,6 +548,39 @@ export const GraphEditor: React.FC = () => {
                   />
                 );
               })}
+              {/* Временная линия при drag */}
+              {dragPort &&
+                mousePos &&
+                (() => {
+                  const source = nodes.find((n) => n.id === dragPort.nodeId);
+                  if (!source) return null;
+                  const sourceIdx = dragPort.portIdx;
+                  const sourceY =
+                    source.y +
+                    40 +
+                    (source.output && Array.isArray(source.output)
+                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                      : 0);
+                  const startX = source.x + 120;
+                  const startY = sourceY;
+                  const canvas = document.getElementById("graph-canvas");
+                  if (!canvas) return null;
+                  const rect = canvas.getBoundingClientRect();
+                  const endX = (mousePos.x - rect.left) / zoom;
+                  const endY = (mousePos.y - rect.top) / zoom;
+                  return (
+                    <line
+                      x1={startX}
+                      y1={startY}
+                      x2={endX}
+                      y2={endY}
+                      stroke="#22c55e"
+                      strokeWidth={3}
+                      opacity={0.7}
+                      markerEnd="url(#arrowhead)"
+                    />
+                  );
+                })()}
             </svg>
             {nodes.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -509,6 +612,8 @@ export const GraphEditor: React.FC = () => {
                   }}
                   onDrag={handleDragNode}
                   onDelete={handleDeleteNode}
+                  onPortConnectStart={handlePortConnectStart}
+                  onPortConnectEnd={handlePortConnectEnd}
                 />
               ))
             )}

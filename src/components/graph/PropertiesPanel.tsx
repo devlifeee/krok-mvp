@@ -179,6 +179,76 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           />
         </div>
 
+        {/* Input/Output ports */}
+        <div className="space-y-2">
+          <Label>Входы (input)</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={localNode.input === true}
+              onChange={(e) =>
+                updateLocalNode({ input: e.target.checked ? true : undefined })
+              }
+            />
+            <span>Один вход</span>
+          </div>
+          <div className="mt-1">
+            <Label className="text-xs">
+              Множественные входы (по одному на строку)
+            </Label>
+            <textarea
+              className="w-full border rounded p-1 text-xs"
+              rows={2}
+              value={
+                Array.isArray(localNode.input) ? localNode.input.join("\n") : ""
+              }
+              onChange={(e) => {
+                const val = e.target.value
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                updateLocalNode({ input: val.length ? val : undefined });
+              }}
+              placeholder="input1\ninput2"
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Выходы (output)</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={localNode.output === true}
+              onChange={(e) =>
+                updateLocalNode({ output: e.target.checked ? true : undefined })
+              }
+            />
+            <span>Один выход</span>
+          </div>
+          <div className="mt-1">
+            <Label className="text-xs">
+              Множественные выходы (по одному на строку)
+            </Label>
+            <textarea
+              className="w-full border rounded p-1 text-xs"
+              rows={2}
+              value={
+                Array.isArray(localNode.output)
+                  ? localNode.output.join("\n")
+                  : ""
+              }
+              onChange={(e) => {
+                const val = e.target.value
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean);
+                updateLocalNode({ output: val.length ? val : undefined });
+              }}
+              placeholder="output1\noutput2"
+            />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-2 pt-4">
           <Button onClick={handleSave} size="sm" className="w-full">
             <Save className="h-4 w-4 mr-2" />
