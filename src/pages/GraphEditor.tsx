@@ -312,92 +312,102 @@ export const GraphEditor: React.FC = () => {
     toast.success("Граф экспортирован");
   };
 
-const handleImport = () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  
-  input.onchange = async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) {
-      toast.error('Файл не выбран');
-      return;
-    }
+  const handleImport = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
 
-    try {
-      // Читаем содержимое файла
-      const fileContent = await file.text();
-      
-      // Парсим JSON
-      let parsedData;
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) {
+        toast.error("Файл не выбран");
+        return;
+      }
+
       try {
-        parsedData = JSON.parse(fileContent);
-      } catch (parseError) {
-        throw new Error('Неверный JSON-формат файла');
+        // Читаем содержимое файла
+        const fileContent = await file.text();
+
+        // Парсим JSON
+        let parsedData;
+        try {
+          parsedData = JSON.parse(fileContent);
+        } catch (parseError) {
+          throw new Error("Неверный JSON-формат файла");
+        }
+
+        // Проверяем поддерживаемые форматы
+        const isArrayFormat = Array.isArray(parsedData);
+        const isObjectFormat =
+          parsedData &&
+          typeof parsedData === "object" &&
+          Array.isArray(parsedData.nodes);
+
+        if (!isArrayFormat && !isObjectFormat) {
+          throw new Error(
+            "Формат файла не поддерживается. Ожидается: массив узлов или объект с полями nodes/links"
+          );
+        }
+
+        // Извлекаем данные
+        const nodesToImport = isArrayFormat ? parsedData : parsedData.nodes;
+        const linksToImport = isArrayFormat ? [] : parsedData.links || [];
+
+        // Проверяем узлы
+        if (!Array.isArray(nodesToImport)) {
+          throw new Error("Узлы должны быть массивом");
+        }
+
+        // Проверяем связи
+        if (!Array.isArray(linksToImport)) {
+          throw new Error("Связи должны быть массивом");
+        }
+
+        // Валидация узлов
+        const invalidNode = nodesToImport.find(
+          (node) =>
+            !node.id ||
+            !node.type ||
+            typeof node.x !== "number" ||
+            typeof node.y !== "number"
+        );
+
+        if (invalidNode) {
+          throw new Error(`Некорректный узел: ${JSON.stringify(invalidNode)}`);
+        }
+
+        // Валидация связей
+        const invalidLink = linksToImport.find(
+          (link) => !link.source || !link.target || !link.id
+        );
+
+        if (invalidLink) {
+          throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
+        }
+
+        // Обновляем состояние
+        setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
+        setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
+
+        setSelectedNodeId(null);
+        setSelectedLinkId(null);
+        setHasChanges(true);
+
+        toast.success(
+          `Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`
+        );
+      } catch (error) {
+        console.error("Ошибка импорта:", error);
+        toast.error(
+          error instanceof Error
+            ? `Ошибка импорта: ${error.message}`
+            : "Неизвестная ошибка при импорте"
+        );
       }
+    };
 
-      // Проверяем поддерживаемые форматы
-      const isArrayFormat = Array.isArray(parsedData);
-      const isObjectFormat = parsedData && typeof parsedData === 'object' && Array.isArray(parsedData.nodes);
-      
-      if (!isArrayFormat && !isObjectFormat) {
-        throw new Error('Формат файла не поддерживается. Ожидается: массив узлов или объект с полями nodes/links');
-      }
-
-      // Извлекаем данные
-      const nodesToImport = isArrayFormat ? parsedData : parsedData.nodes;
-      const linksToImport = isArrayFormat ? [] : (parsedData.links || []);
-
-      // Проверяем узлы
-      if (!Array.isArray(nodesToImport)) {
-        throw new Error('Узлы должны быть массивом');
-      }
-
-      // Проверяем связи
-      if (!Array.isArray(linksToImport)) {
-        throw new Error('Связи должны быть массивом');
-      }
-
-      // Валидация узлов
-      const invalidNode = nodesToImport.find(node => 
-        !node.id || !node.type || typeof node.x !== 'number' || typeof node.y !== 'number'
-      );
-      
-      if (invalidNode) {
-        throw new Error(`Некорректный узел: ${JSON.stringify(invalidNode)}`);
-      }
-
-      // Валидация связей
-      const invalidLink = linksToImport.find(link => 
-        !link.source || !link.target || !link.id
-      );
-      
-      if (invalidLink) {
-        throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
-      }
-
-      // Обновляем состояние
-      setNodes(prevNodes => [...prevNodes, ...nodesToImport]);
-      setLinks(prevLinks => [...prevLinks, ...linksToImport]);
-      
-      setSelectedNodeId(null);
-      setSelectedLinkId(null);
-      setHasChanges(true);
-      
-      toast.success(`Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`);
-      
-    } catch (error) {
-      console.error('Ошибка импорта:', error);
-      toast.error(
-        error instanceof Error 
-          ? `Ошибка импорта: ${error.message}`
-          : 'Неизвестная ошибка при импорте'
-      );
-    }
+    input.click();
   };
-
-  input.click();
-};
 
   const handleZoomIn = () => {
     setZoom((prev) => Math.min(prev + 0.1, 2));
@@ -444,7 +454,7 @@ const handleImport = () => {
     const newNode: GraphNodeType = {
       id: generateNodeId(),
       type,
-      name: `Новый ${type}`,
+      name: type.charAt(0).toUpperCase() + type.slice(1),
       x,
       y,
       health: Math.floor(Math.random() * 100),
