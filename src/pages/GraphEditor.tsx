@@ -19,23 +19,91 @@ import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
 import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
 import { toast } from "sonner";
 
+// Новый тип для Flow
+interface Flow {
+  id: string;
+  name: string;
+  nodes: GraphNodeType[];
+  links: GraphLink[];
+}
+
 export const GraphEditor: React.FC = () => {
-  const [nodes, setNodes] = useState<GraphNodeType[]>([]);
-  const [links, setLinks] = useState<GraphLink[]>([]); // Новое состояние для связей
+  // flows: массив потоков
+  const [flows, setFlows] = useState<Flow[]>([
+    {
+      id: "flow_1",
+      name: "Поток 1",
+      nodes: [],
+      links: [],
+    },
+  ]);
+  const [activeFlowId, setActiveFlowId] = useState("flow_1");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null); // Для выделения связи
-  const [linkSourceId, setLinkSourceId] = useState<string | null>(null); // Для создания связи: первый выбранный узел
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Получить активный поток
+  const activeFlow = flows.find((f) => f.id === activeFlowId)!;
+  const nodes = activeFlow.nodes;
+  const links = activeFlow.links;
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
 
+  // Генерация id
   const generateNodeId = () =>
     `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  // Генерация уникального id для связи
   const generateLinkId = () =>
     `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const generateFlowId = () =>
+    `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // CRUD для flows
+  const handleAddFlow = () => {
+    const newFlow: Flow = {
+      id: generateFlowId(),
+      name: `Поток ${flows.length + 1}`,
+      nodes: [],
+      links: [],
+    };
+    setFlows((prev) => [...prev, newFlow]);
+    setActiveFlowId(newFlow.id);
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+  const handleSelectFlow = (flowId: string) => {
+    setActiveFlowId(flowId);
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+  const handleRenameFlow = (flowId: string, name: string) => {
+    setFlows((prev) => prev.map((f) => (f.id === flowId ? { ...f, name } : f)));
+  };
+  const handleDeleteFlow = (flowId: string) => {
+    if (flows.length === 1) return;
+    setFlows((prev) => prev.filter((f) => f.id !== flowId));
+    if (activeFlowId === flowId) {
+      setActiveFlowId(flows.find((f) => f.id !== flowId)!.id);
+    }
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+
+  // Все функции для nodes/links теперь работают только с nodes/links активного потока
+  const setNodes = (updater: (prev: GraphNodeType[]) => GraphNodeType[]) => {
+    setFlows((prev) =>
+      prev.map((f) =>
+        f.id === activeFlowId ? { ...f, nodes: updater(f.nodes) } : f
+      )
+    );
+  };
+  const setLinks = (updater: (prev: GraphLink[]) => GraphLink[]) => {
+    setFlows((prev) =>
+      prev.map((f) =>
+        f.id === activeFlowId ? { ...f, links: updater(f.links) } : f
+      )
+    );
+  };
 
   // Функция для начала или завершения создания связи
   const handleLinkNode = useCallback(
@@ -63,39 +131,31 @@ export const GraphEditor: React.FC = () => {
     [linkSourceId]
   );
 
-  const handleAddNode = useCallback(
-    (type: "server" | "database" | "network" | "service") => {
-      const newNode: GraphNodeType = {
-        id: generateNodeId(),
-        type,
-        name: `Новый ${
-          type === "server"
-            ? "сервер"
-            : type === "database"
-            ? "БД"
-            : type === "network"
-            ? "сеть"
-            : "сервис"
-        }`,
-        x: 100 + Math.random() * 200,
-        y: 100 + Math.random() * 200,
-        health: Math.floor(Math.random() * 100),
-        status:
-          Math.random() > 0.7
-            ? "warning"
-            : Math.random() > 0.9
-            ? "critical"
-            : "healthy",
-        properties: {},
-      };
+  // Обновляю типизацию для новых типов узлов
+  type NodeType =
+    | "server"
+    | "database"
+    | "network"
+    | "service"
+    | "api"
+    | "storage";
 
-      setNodes((prev) => [...prev, newNode]);
-      setSelectedNodeId(newNode.id);
-      setHasChanges(true);
-      toast.success(`${newNode.name} добавлен на граф`);
-    },
-    []
-  );
+  const handleAddNode = useCallback((type: NodeType) => {
+    const newNode: GraphNodeType = {
+      id: generateNodeId(),
+      type,
+      name: `Новый ${type}`,
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 200,
+      health: Math.floor(Math.random() * 100),
+      status: "healthy",
+      properties: {},
+    };
+    setNodes((prev) => [...prev, newNode]);
+    setSelectedNodeId(newNode.id);
+    setHasChanges(true);
+    toast.success(`${newNode.name} добавлен на граф`);
+  }, []);
 
   const handleSelectNode = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
@@ -201,6 +261,39 @@ export const GraphEditor: React.FC = () => {
     }
   };
 
+  // Drag&drop для добавления узла на canvas
+  const handleCanvasDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("application/node-type") as NodeType;
+    if (!type) return;
+    const canvas = document.getElementById("graph-canvas");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    handleAddNodeAt(type, x, y);
+  };
+  const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+  // Добавить узел в конкретную позицию
+  const handleAddNodeAt = (type: NodeType, x: number, y: number) => {
+    const newNode: GraphNodeType = {
+      id: generateNodeId(),
+      type,
+      name: `Новый ${type}`,
+      x,
+      y,
+      health: Math.floor(Math.random() * 100),
+      status: "healthy",
+      properties: {},
+    };
+    setNodes((prev) => [...prev, newNode]);
+    setSelectedNodeId(newNode.id);
+    setHasChanges(true);
+    toast.success(`${newNode.name} добавлен на граф`);
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -230,6 +323,46 @@ export const GraphEditor: React.FC = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* UI для flows (сверху) */}
+      <div className="flex items-center gap-2 p-2 bg-gray-100 border-b">
+        {flows.map((flow) => (
+          <div
+            key={flow.id}
+            className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer ${
+              activeFlowId === flow.id
+                ? "bg-white border border-green-400 font-bold"
+                : "hover:bg-gray-200"
+            }`}
+            onClick={() => handleSelectFlow(flow.id)}
+          >
+            <input
+              className="bg-transparent font-bold w-20 outline-none"
+              value={flow.name}
+              onChange={(e) => handleRenameFlow(flow.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {flows.length > 1 && (
+              <button
+                className="text-red-400 ml-1"
+                title="Удалить поток"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFlow(flow.id);
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          className="ml-2 px-2 py-1 bg-green-200 rounded text-green-900 font-bold"
+          onClick={handleAddFlow}
+        >
+          + Новый поток
+        </button>
       </div>
 
       <div className="flex-1 flex">
@@ -291,12 +424,15 @@ export const GraphEditor: React.FC = () => {
               transform: `scale(${zoom})`,
               transformOrigin: "top left",
               backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+              pointerEvents: "auto", // canvas принимает события
             }}
+            onDrop={handleCanvasDrop}
+            onDragOver={handleCanvasDragOver}
           >
             {/* SVG слой для связей */}
             <svg
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{ zIndex: 1 }}
+              className="absolute inset-0 w-full h-full"
+              style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
             >
               <defs>
                 <marker
@@ -394,6 +530,8 @@ export const GraphEditor: React.FC = () => {
             links={links}
             onSelectLink={setSelectedLinkId}
             selectedLinkId={selectedLinkId}
+            flow={activeFlow}
+            isNodeSelected={!!selectedNode}
           />
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Server, Database, Network, Settings } from "lucide-react";
+import { Server, Database, Network, Settings, Cloud } from "lucide-react";
 import { GraphNode as GraphNodeType } from "@/types/graph";
 
 interface GraphNodeProps {
@@ -15,6 +15,8 @@ const nodeIcons = {
   database: Database,
   network: Network,
   service: Settings,
+  api: Cloud,
+  storage: Database,
 };
 
 const nodeColors = {
@@ -22,6 +24,8 @@ const nodeColors = {
   database: "bg-green-100 border-green-300",
   network: "bg-purple-100 border-purple-300",
   service: "bg-orange-100 border-orange-300",
+  api: "bg-cyan-100 border-cyan-300",
+  storage: "bg-yellow-100 border-yellow-300",
 };
 
 const statusColors = {

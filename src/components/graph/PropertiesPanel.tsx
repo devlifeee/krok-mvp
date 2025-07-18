@@ -21,6 +21,8 @@ interface PropertiesPanelProps {
   links: GraphLink[];
   onSelectLink: (linkId: string) => void;
   selectedLinkId: string | null;
+  flow: { id: string; name: string; nodes: GraphNode[]; links: GraphLink[] };
+  isNodeSelected: boolean;
 }
 
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
@@ -30,12 +32,37 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   links,
   onSelectLink,
   selectedLinkId,
+  flow,
+  isNodeSelected,
 }) => {
   const [localNode, setLocalNode] = React.useState<GraphNode | null>(null);
 
   React.useEffect(() => {
     setLocalNode(selectedNode);
   }, [selectedNode]);
+
+  // Если не выбран узел — показываем инфо о потоке
+  if (!isNodeSelected) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Информация о потоке</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="font-bold">{flow.name}</div>
+            <div className="text-sm text-gray-600">ID: {flow.id}</div>
+            <div className="text-sm">Узлов: {flow.nodes.length}</div>
+            <div className="text-sm">Связей: {flow.links.length}</div>
+            <div className="text-xs text-gray-500 pt-2">
+              Здесь вы можете создавать и настраивать потоки обработки данных,
+              соединяя инфраструктурные компоненты.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleSave = () => {
     if (localNode) {
@@ -103,6 +130,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           <Select
             value={localNode.type}
             onValueChange={(value) => updateLocalNode({ type: value as any })}
+            disabled={!!localNode.id} // Нельзя менять тип, если узел уже создан
           >
             <SelectTrigger>
               <SelectValue />
@@ -112,6 +140,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               <SelectItem value="database">База данных</SelectItem>
               <SelectItem value="network">Сеть</SelectItem>
               <SelectItem value="service">Сервис</SelectItem>
+              <SelectItem value="api">API</SelectItem>
+              <SelectItem value="storage">Хранилище</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -145,6 +175,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             onChange={(e) =>
               updateLocalNode({ health: parseInt(e.target.value) || 0 })
             }
+            // disabled={...} // НЕ ставим disabled, чтобы можно было редактировать
           />
         </div>
 

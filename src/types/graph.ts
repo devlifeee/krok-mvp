@@ -1,12 +1,11 @@
-
 export interface GraphNode {
   id: string;
-  type: 'server' | 'database' | 'network' | 'service';
+  type: "server" | "database" | "network" | "service" | "api" | "storage";
   name: string;
   x: number;
   y: number;
   health: number; // 0-100
-  status: 'healthy' | 'warning' | 'critical' | 'unknown';
+  status: "healthy" | "warning" | "critical" | "unknown";
   metrics?: {
     cpu?: number;
     memory?: number;
@@ -19,8 +18,8 @@ export interface GraphLink {
   id: string;
   source: string;
   target: string;
-  type: 'network' | 'dependency' | 'data_flow';
-  status: 'active' | 'inactive' | 'error';
+  type: "network" | "dependency" | "data_flow";
+  status: "active" | "inactive" | "error";
 }
 
 export interface Graph {
