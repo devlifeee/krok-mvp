@@ -1,24 +1,39 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { GraphNode } from '@/types/graph';
-import { Settings, Trash2, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { GraphNode, GraphLink } from "@/types/graph";
+import { Settings, Trash2, Save } from "lucide-react";
+import { toast } from "sonner";
 
 interface PropertiesPanelProps {
   selectedNode: GraphNode | null;
   onUpdateNode: (nodeId: string, updates: Partial<GraphNode>) => void;
   onDeleteNode: (nodeId: string) => void;
+  links: GraphLink[];
+  onSelectLink: (linkId: string) => void;
+  selectedLinkId: string | null;
+  flow: { id: string; name: string; nodes: GraphNode[]; links: GraphLink[] };
+  isNodeSelected: boolean;
 }
 
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   selectedNode,
   onUpdateNode,
   onDeleteNode,
+  links,
+  onSelectLink,
+  selectedLinkId,
+  flow,
+  isNodeSelected,
 }) => {
   const [localNode, setLocalNode] = React.useState<GraphNode | null>(null);
 
@@ -26,17 +41,40 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     setLocalNode(selectedNode);
   }, [selectedNode]);
 
+  // Если не выбран узел — показываем инфо о потоке
+  if (!isNodeSelected) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Информация о потоке</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="font-bold">{flow.name}</div>
+            <div className="text-sm text-gray-600">ID: {flow.id}</div>
+            <div className="text-sm">Узлов: {flow.nodes.length}</div>
+            <div className="text-sm">Связей: {flow.links.length}</div>
+            <div className="text-xs text-gray-500 pt-2">
+              Здесь вы можете создавать и настраивать потоки обработки данных,
+              соединяя инфраструктурные компоненты.
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const handleSave = () => {
     if (localNode) {
       onUpdateNode(localNode.id, localNode);
-      toast.success('Свойства узла сохранены');
+      toast.success("Свойства узла сохранены");
     }
   };
 
   const handleDelete = () => {
     if (localNode) {
       onDeleteNode(localNode.id);
-      toast.success('Узел удален');
+      toast.success("Узел удален");
     }
   };
 
@@ -56,7 +94,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           <div className="text-center text-gray-500 py-8">
             <Settings className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="text-sm">
-              Выберите узел для<br />
+              Выберите узел для
+              <br />
               редактирования свойств
             </p>
           </div>
@@ -64,6 +103,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       </Card>
     );
   }
+
+  // Найти все связи, где этот узел — source или target
+  const relatedLinks = links.filter(
+    (l) => l.source === localNode.id || l.target === localNode.id
+  );
 
   return (
     <Card>
@@ -83,9 +127,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
         <div className="space-y-2">
           <Label>Тип</Label>
-          <Select 
-            value={localNode.type} 
+          <Select
+            value={localNode.type}
             onValueChange={(value) => updateLocalNode({ type: value as any })}
+            disabled={!!localNode.id} // Нельзя менять тип, если узел уже создан
           >
             <SelectTrigger>
               <SelectValue />
@@ -95,14 +140,16 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
               <SelectItem value="database">База данных</SelectItem>
               <SelectItem value="network">Сеть</SelectItem>
               <SelectItem value="service">Сервис</SelectItem>
+              <SelectItem value="api">API</SelectItem>
+              <SelectItem value="storage">Хранилище</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
           <Label>Статус</Label>
-          <Select 
-            value={localNode.status} 
+          <Select
+            value={localNode.status}
             onValueChange={(value) => updateLocalNode({ status: value as any })}
           >
             <SelectTrigger>
@@ -125,7 +172,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             min="0"
             max="100"
             value={localNode.health}
-            onChange={(e) => updateLocalNode({ health: parseInt(e.target.value) || 0 })}
+            onChange={(e) =>
+              updateLocalNode({ health: parseInt(e.target.value) || 0 })
+            }
+            // disabled={...} // НЕ ставим disabled, чтобы можно было редактировать
           />
         </div>
 
@@ -134,7 +184,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
             <Save className="h-4 w-4 mr-2" />
             Сохранить
           </Button>
-          <Button onClick={handleDelete} variant="destructive" size="sm" className="w-full">
+          <Button
+            onClick={handleDelete}
+            variant="destructive"
+            size="sm"
+            className="w-full"
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Удалить
           </Button>
@@ -143,9 +198,34 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         <div className="pt-4 border-t">
           <div className="text-sm text-gray-600 space-y-1">
             <div>ID: {localNode.id}</div>
-            <div>Позиция: {Math.round(localNode.x)}, {Math.round(localNode.y)}</div>
+            <div>
+              Позиция: {Math.round(localNode.x)}, {Math.round(localNode.y)}
+            </div>
           </div>
         </div>
+        {/* Список связей */}
+        {relatedLinks.length > 0 && (
+          <div className="pt-4 border-t">
+            <div className="font-semibold text-sm mb-2">Связи этого узла:</div>
+            <ul className="space-y-1">
+              {relatedLinks.map((link) => (
+                <li key={link.id}>
+                  <button
+                    className={`text-xs px-2 py-1 rounded transition border ${
+                      selectedLinkId === link.id
+                        ? "bg-orange-100 border-orange-400 font-bold"
+                        : "bg-gray-100 border-gray-300"
+                    } hover:bg-orange-50`}
+                    onClick={() => onSelectLink(link.id)}
+                  >
+                    {link.source === localNode.id ? "→" : "←"} {link.source} -{" "}
+                    {link.target} [{link.type}] ({link.status})
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

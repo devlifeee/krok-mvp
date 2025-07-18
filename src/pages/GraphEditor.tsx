@@ -1,47 +1,157 @@
-
-import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Save, 
-  Download, 
-  Upload, 
-  ZoomIn, 
+import React, { useState, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Save,
+  Download,
+  Upload,
+  ZoomIn,
   ZoomOut,
   RotateCcw,
   Trash2,
-  Settings
-} from 'lucide-react';
-import { GraphNode as GraphNodeType } from '@/types/graph';
-import { GraphNode } from '@/components/graph/GraphNode';
-import { NodePalette } from '@/components/graph/NodePalette';
-import { PropertiesPanel } from '@/components/graph/PropertiesPanel';
-import { toast } from 'sonner';
+  Settings,
+} from "lucide-react";
+import { GraphNode as GraphNodeType, GraphLink } from "@/types/graph";
+import { GraphNode } from "@/components/graph/GraphNode";
+import { NodePalette } from "@/components/graph/NodePalette";
+import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
+import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
+import { toast } from "sonner";
+
+// Новый тип для Flow
+interface Flow {
+  id: string;
+  name: string;
+  nodes: GraphNodeType[];
+  links: GraphLink[];
+}
 
 export const GraphEditor: React.FC = () => {
-  const [nodes, setNodes] = useState<GraphNodeType[]>([]);
+  // flows: массив потоков
+  const [flows, setFlows] = useState<Flow[]>([
+    {
+      id: "flow_1",
+      name: "Поток 1",
+      nodes: [],
+      links: [],
+    },
+  ]);
+  const [activeFlowId, setActiveFlowId] = useState("flow_1");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const selectedNode = nodes.find(node => node.id === selectedNodeId) || null;
+  // Получить активный поток
+  const activeFlow = flows.find((f) => f.id === activeFlowId)!;
+  const nodes = activeFlow.nodes;
+  const links = activeFlow.links;
+  const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
 
-  const generateNodeId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Генерация id
+  const generateNodeId = () =>
+    `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const generateLinkId = () =>
+    `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const generateFlowId = () =>
+    `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const handleAddNode = useCallback((type: 'server' | 'database' | 'network' | 'service') => {
+  // CRUD для flows
+  const handleAddFlow = () => {
+    const newFlow: Flow = {
+      id: generateFlowId(),
+      name: `Поток ${flows.length + 1}`,
+      nodes: [],
+      links: [],
+    };
+    setFlows((prev) => [...prev, newFlow]);
+    setActiveFlowId(newFlow.id);
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+  const handleSelectFlow = (flowId: string) => {
+    setActiveFlowId(flowId);
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+  const handleRenameFlow = (flowId: string, name: string) => {
+    setFlows((prev) => prev.map((f) => (f.id === flowId ? { ...f, name } : f)));
+  };
+  const handleDeleteFlow = (flowId: string) => {
+    if (flows.length === 1) return;
+    setFlows((prev) => prev.filter((f) => f.id !== flowId));
+    if (activeFlowId === flowId) {
+      setActiveFlowId(flows.find((f) => f.id !== flowId)!.id);
+    }
+    setSelectedNodeId(null);
+    setSelectedLinkId(null);
+  };
+
+  // Все функции для nodes/links теперь работают только с nodes/links активного потока
+  const setNodes = (updater: (prev: GraphNodeType[]) => GraphNodeType[]) => {
+    setFlows((prev) =>
+      prev.map((f) =>
+        f.id === activeFlowId ? { ...f, nodes: updater(f.nodes) } : f
+      )
+    );
+  };
+  const setLinks = (updater: (prev: GraphLink[]) => GraphLink[]) => {
+    setFlows((prev) =>
+      prev.map((f) =>
+        f.id === activeFlowId ? { ...f, links: updater(f.links) } : f
+      )
+    );
+  };
+
+  // Функция для начала или завершения создания связи
+  const handleLinkNode = useCallback(
+    (nodeId: string) => {
+      if (!linkSourceId) {
+        setLinkSourceId(nodeId); // Первый клик — выбираем источник
+        toast.info("Выберите второй узел для создания связи");
+      } else if (linkSourceId && linkSourceId !== nodeId) {
+        // Создаём связь между linkSourceId и nodeId
+        const newLink: GraphLink = {
+          id: generateLinkId(),
+          source: linkSourceId,
+          target: nodeId,
+          type: "network", // по умолчанию
+          status: "active",
+        };
+        setLinks((prev) => [...prev, newLink]);
+        setLinkSourceId(null);
+        setHasChanges(true);
+        toast.success("Связь создана");
+      } else {
+        setLinkSourceId(null); // сброс, если клик по тому же узлу
+      }
+    },
+    [linkSourceId]
+  );
+
+  // Обновляю типизацию для новых типов узлов
+  type NodeType =
+    | "server"
+    | "database"
+    | "network"
+    | "service"
+    | "api"
+    | "storage";
+
+  const handleAddNode = useCallback((type: NodeType) => {
     const newNode: GraphNodeType = {
       id: generateNodeId(),
       type,
-      name: `Новый ${type === 'server' ? 'сервер' : type === 'database' ? 'БД' : type === 'network' ? 'сеть' : 'сервис'}`,
+      name: `Новый ${type}`,
       x: 100 + Math.random() * 200,
       y: 100 + Math.random() * 200,
       health: Math.floor(Math.random() * 100),
-      status: Math.random() > 0.7 ? 'warning' : Math.random() > 0.9 ? 'critical' : 'healthy',
-      properties: {}
+      status: "healthy",
+      properties: {},
     };
-
-    setNodes(prev => [...prev, newNode]);
+    setNodes((prev) => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
     setHasChanges(true);
     toast.success(`${newNode.name} добавлен на граф`);
@@ -52,50 +162,59 @@ export const GraphEditor: React.FC = () => {
   }, []);
 
   const handleDragNode = useCallback((nodeId: string, x: number, y: number) => {
-    setNodes(prev => prev.map(node => 
-      node.id === nodeId ? { ...node, x, y } : node
-    ));
+    setNodes((prev) =>
+      prev.map((node) => (node.id === nodeId ? { ...node, x, y } : node))
+    );
     setHasChanges(true);
   }, []);
 
-  const handleUpdateNode = useCallback((nodeId: string, updates: Partial<GraphNodeType>) => {
-    setNodes(prev => prev.map(node => 
-      node.id === nodeId ? { ...node, ...updates } : node
-    ));
-    setHasChanges(true);
-  }, []);
+  const handleUpdateNode = useCallback(
+    (nodeId: string, updates: Partial<GraphNodeType>) => {
+      setNodes((prev) =>
+        prev.map((node) =>
+          node.id === nodeId ? { ...node, ...updates } : node
+        )
+      );
+      setHasChanges(true);
+    },
+    []
+  );
 
-  const handleDeleteNode = useCallback((nodeId: string) => {
-    setNodes(prev => prev.filter(node => node.id !== nodeId));
-    if (selectedNodeId === nodeId) {
-      setSelectedNodeId(null);
-    }
-    setHasChanges(true);
-    toast.success('Узел удален');
-  }, [selectedNodeId]);
+  const handleDeleteNode = useCallback(
+    (nodeId: string) => {
+      setNodes((prev) => prev.filter((node) => node.id !== nodeId));
+      if (selectedNodeId === nodeId) {
+        setSelectedNodeId(null);
+      }
+      setHasChanges(true);
+      toast.success("Узел удален");
+    },
+    [selectedNodeId]
+  );
 
   const handleSave = () => {
-    toast.success('Граф сохранен');
+    toast.success("Граф сохранен");
     setHasChanges(false);
   };
 
   const handleExport = () => {
     const dataStr = JSON.stringify(nodes, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = 'graph_export.json';
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    const dataUri =
+      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+    const exportFileDefaultName = "graph_export.json";
+
+    const linkElement = document.createElement("a");
+    linkElement.setAttribute("href", dataUri);
+    linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
-    
-    toast.success('Граф экспортирован');
+
+    toast.success("Граф экспортирован");
   };
 
   const handleImport = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -106,9 +225,9 @@ export const GraphEditor: React.FC = () => {
             setNodes(importedNodes);
             setSelectedNodeId(null);
             setHasChanges(true);
-            toast.success('Граф импортирован');
+            toast.success("Граф импортирован");
           } catch (error) {
-            toast.error('Ошибка импорта файла');
+            toast.error("Ошибка импорта файла");
           }
         };
         reader.readAsText(file);
@@ -118,11 +237,11 @@ export const GraphEditor: React.FC = () => {
   };
 
   const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.1, 2));
+    setZoom((prev) => Math.min(prev + 0.1, 2));
   };
 
   const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.1, 0.5));
+    setZoom((prev) => Math.max(prev - 0.1, 0.5));
   };
 
   const handleReset = () => {
@@ -130,7 +249,7 @@ export const GraphEditor: React.FC = () => {
     setSelectedNodeId(null);
     setZoom(1);
     setHasChanges(false);
-    toast.success('Граф очищен');
+    toast.success("Граф очищен");
   };
 
   const handleClearAll = () => {
@@ -138,8 +257,41 @@ export const GraphEditor: React.FC = () => {
       setNodes([]);
       setSelectedNodeId(null);
       setHasChanges(true);
-      toast.success('Все узлы удалены');
+      toast.success("Все узлы удалены");
     }
+  };
+
+  // Drag&drop для добавления узла на canvas
+  const handleCanvasDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("application/node-type") as NodeType;
+    if (!type) return;
+    const canvas = document.getElementById("graph-canvas");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    handleAddNodeAt(type, x, y);
+  };
+  const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+  // Добавить узел в конкретную позицию
+  const handleAddNodeAt = (type: NodeType, x: number, y: number) => {
+    const newNode: GraphNodeType = {
+      id: generateNodeId(),
+      type,
+      name: `Новый ${type}`,
+      x,
+      y,
+      health: Math.floor(Math.random() * 100),
+      status: "healthy",
+      properties: {},
+    };
+    setNodes((prev) => [...prev, newNode]);
+    setSelectedNodeId(newNode.id);
+    setHasChanges(true);
+    toast.success(`${newNode.name} добавлен на граф`);
   };
 
   return (
@@ -173,6 +325,46 @@ export const GraphEditor: React.FC = () => {
         </div>
       </div>
 
+      {/* UI для flows (сверху) */}
+      <div className="flex items-center gap-2 p-2 bg-gray-100 border-b">
+        {flows.map((flow) => (
+          <div
+            key={flow.id}
+            className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer ${
+              activeFlowId === flow.id
+                ? "bg-white border border-green-400 font-bold"
+                : "hover:bg-gray-200"
+            }`}
+            onClick={() => handleSelectFlow(flow.id)}
+          >
+            <input
+              className="bg-transparent font-bold w-20 outline-none"
+              value={flow.name}
+              onChange={(e) => handleRenameFlow(flow.id, e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+            />
+            {flows.length > 1 && (
+              <button
+                className="text-red-400 ml-1"
+                title="Удалить поток"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFlow(flow.id);
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          className="ml-2 px-2 py-1 bg-green-200 rounded text-green-900 font-bold"
+          onClick={handleAddFlow}
+        >
+          + Новый поток
+        </button>
+      </div>
+
       <div className="flex-1 flex">
         {/* Tool Palette */}
         <div className="w-64 p-4 bg-gray-50 border-r border-gray-200">
@@ -183,19 +375,39 @@ export const GraphEditor: React.FC = () => {
               <CardTitle className="text-lg">Управление</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleZoomIn}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleZoomIn}
+              >
                 <ZoomIn className="h-4 w-4 mr-2" />
                 Увеличить
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleZoomOut}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleZoomOut}
+              >
                 <ZoomOut className="h-4 w-4 mr-2" />
                 Уменьшить
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleReset}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleReset}
+              >
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Сбросить
               </Button>
-              <Button variant="destructive" size="sm" className="w-full justify-start" onClick={handleClearAll}>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full justify-start"
+                onClick={handleClearAll}
+              >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Очистить все
               </Button>
@@ -205,45 +417,107 @@ export const GraphEditor: React.FC = () => {
 
         {/* Main Canvas */}
         <div className="flex-1 relative bg-white overflow-hidden">
-          <div 
+          <div
             id="graph-canvas"
             className="absolute inset-0 bg-grid-pattern"
-            style={{ 
+            style={{
               transform: `scale(${zoom})`,
-              transformOrigin: 'top left',
-              backgroundSize: `${20 * zoom}px ${20 * zoom}px`
+              transformOrigin: "top left",
+              backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+              pointerEvents: "auto", // canvas принимает события
             }}
+            onDrop={handleCanvasDrop}
+            onDragOver={handleCanvasDragOver}
           >
+            {/* SVG слой для связей */}
+            <svg
+              className="absolute inset-0 w-full h-full"
+              style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
+            >
+              <defs>
+                <marker
+                  id="arrowhead"
+                  markerWidth="10"
+                  markerHeight="7"
+                  refX="10"
+                  refY="3.5"
+                  orient="auto"
+                  markerUnits="strokeWidth"
+                >
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
+                </marker>
+              </defs>
+              {links.map((link) => {
+                const source = nodes.find((n) => n.id === link.source);
+                const target = nodes.find((n) => n.id === link.target);
+                if (!source || !target) return null;
+                return (
+                  <GraphLinkLine
+                    key={link.id}
+                    source={{
+                      x: source.x,
+                      y: source.y,
+                      width: 120,
+                      height: 80,
+                    }}
+                    target={{
+                      x: target.x,
+                      y: target.y,
+                      width: 120,
+                      height: 80,
+                    }}
+                    color={
+                      link.status === "active"
+                        ? "#22c55e"
+                        : link.status === "error"
+                        ? "#ef4444"
+                        : "#a3a3a3"
+                    }
+                    markerEnd={true}
+                    opacity={0.8}
+                  />
+                );
+              })}
+            </svg>
             {nodes.length === 0 ? (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="text-center text-gray-500">
                   <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-lg flex items-center justify-center">
                     <Settings className="h-8 w-8" />
                   </div>
-                  <h3 className="text-lg font-medium mb-2">Начните создание графа</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    Начните создание графа
+                  </h3>
                   <p className="text-sm">
-                    Добавьте компоненты из панели инструментов<br />
+                    Добавьте компоненты из панели инструментов
+                    <br />
                     или импортируйте существующую топологию
                   </p>
                 </div>
               </div>
             ) : (
-              nodes.map(node => (
+              nodes.map((node) => (
                 <GraphNode
                   key={node.id}
                   node={node}
                   isSelected={selectedNodeId === node.id}
-                  onSelect={handleSelectNode}
+                  onSelect={(id) => {
+                    setSelectedNodeId(id);
+                    if (window.event && (window.event as MouseEvent).shiftKey) {
+                      handleLinkNode(id); // Shift+клик — создать связь
+                    }
+                  }}
                   onDrag={handleDragNode}
                   onDelete={handleDeleteNode}
                 />
               ))
             )}
           </div>
-          
+
           {/* Canvas info overlay */}
           <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
-            Клик - выбор | Перетаскивание - перемещение | Двойной клик - удаление
+            Клик - выбор | Перетаскивание - перемещение | Двойной клик -
+            удаление | Shift+клик по двум узлам - создать связь
           </div>
         </div>
 
@@ -253,6 +527,11 @@ export const GraphEditor: React.FC = () => {
             selectedNode={selectedNode}
             onUpdateNode={handleUpdateNode}
             onDeleteNode={handleDeleteNode}
+            links={links}
+            onSelectLink={setSelectedLinkId}
+            selectedLinkId={selectedLinkId}
+            flow={activeFlow}
+            isNodeSelected={!!selectedNode}
           />
         </div>
       </div>
