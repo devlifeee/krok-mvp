@@ -44,10 +44,6 @@ const DataSources: React.FC = () => {
             Управление подключениями к системам мониторинга
           </p>
         </div>
-        <Button size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Добавить источник
-        </Button>
       </div>
 
       {/* Current Sources */}
@@ -150,7 +146,7 @@ const DataSources: React.FC = () => {
       {/* Available Sources */}
       <Card>
         <CardHeader>
-          <CardTitle>Доступные источники</CardTitle>
+          <CardTitle>Скоро доступные сервисы</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -162,9 +158,6 @@ const DataSources: React.FC = () => {
                   <div className="text-sm text-gray-500">Временные ряды</div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full">
-                Настроить
-              </Button>
             </div>
 
             <div className="p-4 border border-gray-200 rounded-lg hover:border-green-300 cursor-pointer">
@@ -175,9 +168,6 @@ const DataSources: React.FC = () => {
                   <div className="text-sm text-gray-500">Дашборды</div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full">
-                Настроить
-              </Button>
             </div>
 
             <div className="p-4 border border-gray-200 rounded-lg hover:border-green-300 cursor-pointer">
@@ -188,9 +178,6 @@ const DataSources: React.FC = () => {
                   <div className="text-sm text-gray-500">Логи и поиск</div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full">
-                Настроить
-              </Button>
             </div>
           </div>
         </CardContent>
