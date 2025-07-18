@@ -207,7 +207,7 @@ export const GraphEditor: React.FC = () => {
         <div className="flex-1 relative bg-white overflow-hidden">
           <div 
             id="graph-canvas"
-            className="absolute inset-0 bg-grid-pattern opacity-5"
+            className="absolute inset-0 bg-grid-pattern"
             style={{ 
               transform: `scale(${zoom})`,
               transformOrigin: 'top left',
@@ -242,7 +242,7 @@ export const GraphEditor: React.FC = () => {
           </div>
           
           {/* Canvas info overlay */}
-          <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-sm text-xs text-gray-600">
+          <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
             Клик - выбор | Перетаскивание - перемещение | Двойной клик - удаление
           </div>
         </div>

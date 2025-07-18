@@ -96,20 +96,16 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
       onDoubleClick={handleDoubleClick}
       title={`${node.name} - Двойной клик для удаления`}
     >
-      <div className={`relative p-3 rounded-lg border-2 min-w-[120px] ${nodeColors[node.type]} ${
-        isDragging ? 'opacity-80 shadow-lg scale-105' : 'shadow-md'
-      }`}>
+      <div className={`relative p-3 rounded-lg border-2 min-w-[120px] ${nodeColors[node.type]} ${isDragging ? 'opacity-100 shadow-lg scale-105' : 'shadow-md'}`}> 
         {/* Status indicator */}
         <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${statusColors[node.status]}`} />
-        
         {/* Icon and name */}
         <div className="flex flex-col items-center space-y-2">
-          <IconComponent className="h-8 w-8 text-gray-700" />
-          <span className="text-sm font-medium text-gray-800">{node.name}</span>
+          <IconComponent className="h-8 w-8 text-black" />
+          <span className="text-sm font-bold text-black drop-shadow">{node.name}</span>
         </div>
-        
         {/* Health bar */}
-        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+        <div className="mt-2 w-full bg-gray-300 rounded-full h-2">
           <div
             className={`h-2 rounded-full ${
               node.health > 80 ? 'bg-green-500' : 
@@ -118,7 +114,7 @@ export const GraphNode: React.FC<GraphNodeProps> = ({
             style={{ width: `${node.health}%` }}
           />
         </div>
-        <div className="text-xs text-gray-600 mt-1 text-center">
+        <div className="text-xs text-black mt-1 text-center font-semibold">
           {node.health}% здоровье
         </div>
       </div>
