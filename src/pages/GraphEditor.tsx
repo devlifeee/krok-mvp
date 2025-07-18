@@ -2,11 +2,11 @@ import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Save,
-  Download,
-  Upload,
-  ZoomIn,
+import { 
+  Save, 
+  Download, 
+  Upload, 
+  ZoomIn, 
   ZoomOut,
   RotateCcw,
   Trash2,
@@ -258,13 +258,13 @@ export const GraphEditor: React.FC = () => {
             ? {
                 ...flow,
                 nodes: flow.nodes.map((node) =>
-                  node.id === nodeId ? { ...node, x, y } : node
+      node.id === nodeId ? { ...node, x, y } : node
                 ),
               }
             : flow
         )
       );
-      setHasChanges(true);
+    setHasChanges(true);
     },
     [activeFlowId]
   );
@@ -273,10 +273,10 @@ export const GraphEditor: React.FC = () => {
     (nodeId: string, updates: Partial<GraphNodeType>) => {
       setNodes((prev) =>
         prev.map((node) =>
-          node.id === nodeId ? { ...node, ...updates } : node
+      node.id === nodeId ? { ...node, ...updates } : node
         )
       );
-      setHasChanges(true);
+    setHasChanges(true);
     },
     []
   );
@@ -284,10 +284,10 @@ export const GraphEditor: React.FC = () => {
   const handleDeleteNode = useCallback(
     (nodeId: string) => {
       setNodes((prev) => prev.filter((node) => node.id !== nodeId));
-      if (selectedNodeId === nodeId) {
-        setSelectedNodeId(null);
-      }
-      setHasChanges(true);
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(null);
+    }
+    setHasChanges(true);
       toast.success("Узел удален");
     },
     [selectedNodeId]
@@ -308,7 +308,7 @@ export const GraphEditor: React.FC = () => {
     linkElement.setAttribute("href", dataUri);
     linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
-
+    
     toast.success("Граф экспортирован");
   };
 
@@ -388,14 +388,14 @@ export const GraphEditor: React.FC = () => {
         // Обновляем состояние
         setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
         setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
-        setSelectedNodeId(null);
+            setSelectedNodeId(null);
         setSelectedLinkId(null);
-        setHasChanges(true);
+            setHasChanges(true);
 
         toast.success(
           `Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`
         );
-      } catch (error) {
+          } catch (error) {
         console.error("Ошибка импорта:", error);
         toast.error(
           error instanceof Error
@@ -589,10 +589,10 @@ export const GraphEditor: React.FC = () => {
 
         {/* Main Canvas */}
         <div className="flex-1 relative bg-white overflow-hidden">
-          <div
+          <div 
             id="graph-canvas"
             className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
-            style={{
+            style={{ 
               transform: `scale(${zoom})`,
               transformOrigin: "top left",
               backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
@@ -825,13 +825,13 @@ export const GraphEditor: React.FC = () => {
             ) : (
               <>
                 {nodes.map((node) => (
-                  <GraphNode
-                    key={node.id}
-                    node={node}
-                    isSelected={selectedNodeId === node.id}
+                <GraphNode
+                  key={node.id}
+                  node={node}
+                  isSelected={selectedNodeId === node.id}
                     onSelect={setSelectedNodeId}
-                    onDrag={handleDragNode}
-                    onDelete={handleDeleteNode}
+                  onDrag={handleDragNode}
+                  onDelete={handleDeleteNode}
                     onPortConnectStart={handlePortConnectStart}
                     onPortConnectEnd={handlePortConnectEnd}
                     dragPort={dragPort}
@@ -843,7 +843,7 @@ export const GraphEditor: React.FC = () => {
               </>
             )}
           </div>
-
+          
           {/* Canvas info overlay */}
           <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
             Клик - выбор | Перетаскивание - перемещение
