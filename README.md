@@ -87,24 +87,6 @@ src/
     security/       # Тесты безопасности
 ```
 
-### Диаграмма покрытия по модулям
-
-```mermaid
-pie
-    title Покрытие тестами по модулям
-    "Страницы (Dashboard, Metrics, ...)" : 40
-    "UI-компоненты" : 20
-    "Утилиты" : 10
-    "E2E сценарии" : 20
-    "GraphEditor" : 10
-    %% Цвета: пыльные, но яркие
-    style 0 fill:#b0c4de,stroke:#b0c4de
-    style 1 fill:#e6b7a9,stroke:#e6b7a9
-    style 2 fill:#b7d7b9,stroke:#b7d7b9
-    style 3 fill:#f7d794,stroke:#f7d794
-    style 4 fill:#c3aed6,stroke:#c3aed6
-```
-
 ### Архитектурная схема покрытия
 
 ```mermaid
