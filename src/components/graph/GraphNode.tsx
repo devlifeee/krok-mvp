@@ -138,6 +138,12 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
       onDelete(node.id);
     };
 
+    React.useEffect(() => {
+      if (isSelected && nodeRef.current) {
+        nodeRef.current.focus();
+      }
+    }, [isSelected]);
+
     return (
       <div
         ref={nodeRef}
@@ -147,6 +153,17 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
         onMouseDown={handleMouseDown}
         onDoubleClick={handleDoubleClick}
         title={`${node.name} - Двойной клик для удаления`}
+        tabIndex={0}
+        onKeyDown={
+          isSelected
+            ? (e) => {
+                if (e.key === "Backspace" || e.key === "Delete") {
+                  e.preventDefault();
+                  onDelete(node.id);
+                }
+              }
+            : undefined
+        }
       >
         <div
           className={`relative p-3 rounded-lg min-w-[120px] border-2 ${
@@ -164,12 +181,6 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             dragPort={dragPort}
             links={links}
             nodes={nodes}
-          />
-          {/* Status indicator */}
-          <div
-            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
-              statusColors[node.status]
-            }`}
           />
           {/* Icon and name */}
           <div className="flex flex-col items-center space-y-2">

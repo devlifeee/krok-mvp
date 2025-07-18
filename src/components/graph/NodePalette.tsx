@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Server, Database, Network, Settings } from "lucide-react";
 
 interface NodePaletteProps {
-  onAddNode: (type: "server" | "database" | "network" | "service") => void;
+  onAddNode: (
+    type: "server" | "database" | "network" | "service" | "api" | "storage"
+  ) => void;
 }
 
 const nodeTypes = [
