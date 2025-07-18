@@ -18,6 +18,7 @@ import { NodePalette } from "@/components/graph/NodePalette";
 import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
 import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
 import { toast } from "sonner";
+import { getPortCenter } from "@/lib/portUtils";
 
 // Новый тип для Flow
 interface Flow {
@@ -78,6 +79,7 @@ export const GraphEditor: React.FC = () => {
     type: "output" | "input"
   ) => {
     if (type === "input" && dragPort) {
+      console.log("DROP", { from: dragPort, to: { nodeId, portIdx } });
       // Создать связь между dragPort (output) и этим input
       const newLink: GraphLink = {
         id: generateLinkId(),
@@ -505,7 +507,6 @@ export const GraphEditor: React.FC = () => {
                   (n) => n.id === link.target.split(":")[0]
                 );
                 if (!source || !target) return null;
-                // Для портов: вычисляем смещение по индексу
                 const sourceIdx = parseInt(
                   link.source.split(":")[1] || "0",
                   10
@@ -514,28 +515,66 @@ export const GraphEditor: React.FC = () => {
                   link.target.split(":")[1] || "0",
                   10
                 );
-                const sourceY =
-                  source.y +
-                  40 +
-                  (source.output && Array.isArray(source.output)
-                    ? (sourceIdx - (source.output.length - 1) / 2) * 16
-                    : 0);
-                const targetY =
-                  target.y +
-                  40 +
-                  (target.input && Array.isArray(target.input)
-                    ? (targetIdx - (target.input.length - 1) / 2) * 16
-                    : 0);
+                // Получаем DOM-элементы узлов
+                const sourceNodeEl = document.querySelector(
+                  `[data-node-id="${source.id}"]`
+                );
+                const targetNodeEl = document.querySelector(
+                  `[data-node-id="${target.id}"]`
+                );
+                let sx, sy, tx, ty;
+                if (sourceNodeEl) {
+                  const portCenter = getPortCenter(
+                    sourceNodeEl as HTMLElement,
+                    "output",
+                    sourceIdx
+                  );
+                  const canvas = document.getElementById("graph-canvas");
+                  const rect = canvas?.getBoundingClientRect();
+                  if (portCenter && rect) {
+                    sx = (portCenter.x - rect.left) / zoom;
+                    sy = (portCenter.y - rect.top) / zoom;
+                  }
+                }
+                if (targetNodeEl) {
+                  const portCenter = getPortCenter(
+                    targetNodeEl as HTMLElement,
+                    "input",
+                    targetIdx
+                  );
+                  const canvas = document.getElementById("graph-canvas");
+                  const rect = canvas?.getBoundingClientRect();
+                  if (portCenter && rect) {
+                    tx = (portCenter.x - rect.left) / zoom;
+                    ty = (portCenter.y - rect.top) / zoom;
+                  }
+                }
+                // fallback если не удалось получить DOM
+                if (sx === undefined || sy === undefined) {
+                  const sourceY =
+                    source.y +
+                    40 +
+                    (source.output && Array.isArray(source.output)
+                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                      : 0);
+                  sx = source.x + 120 + 8;
+                  sy = sourceY + 8;
+                }
+                if (tx === undefined || ty === undefined) {
+                  const targetY =
+                    target.y +
+                    40 +
+                    (target.input && Array.isArray(target.input)
+                      ? (targetIdx - (target.input.length - 1) / 2) * 16
+                      : 0);
+                  tx = target.x + 8;
+                  ty = targetY + 8;
+                }
                 return (
                   <GraphLinkLine
                     key={link.id}
-                    source={{
-                      x: source.x + 120,
-                      y: sourceY,
-                      width: 0,
-                      height: 0,
-                    }}
-                    target={{ x: target.x, y: targetY, width: 0, height: 0 }}
+                    source={{ x: sx, y: sy, width: 0, height: 0 }}
+                    target={{ x: tx, y: ty, width: 0, height: 0 }}
                     color={
                       link.status === "active"
                         ? "#22c55e"
@@ -543,41 +582,106 @@ export const GraphEditor: React.FC = () => {
                         ? "#ef4444"
                         : "#a3a3a3"
                     }
-                    markerEnd={true}
+                    markerEnd={false}
                     opacity={0.8}
                   />
                 );
               })}
-              {/* Временная линия при drag */}
               {dragPort &&
                 mousePos &&
                 (() => {
                   const source = nodes.find((n) => n.id === dragPort.nodeId);
                   if (!source) return null;
                   const sourceIdx = dragPort.portIdx;
-                  const sourceY =
-                    source.y +
-                    40 +
-                    (source.output && Array.isArray(source.output)
-                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
-                      : 0);
-                  const startX = source.x + 120;
-                  const startY = sourceY;
-                  const canvas = document.getElementById("graph-canvas");
-                  if (!canvas) return null;
-                  const rect = canvas.getBoundingClientRect();
-                  const endX = (mousePos.x - rect.left) / zoom;
-                  const endY = (mousePos.y - rect.top) / zoom;
+                  // Получаем DOM-элемент узла-источника
+                  const sourceNodeEl = document.querySelector(
+                    `[data-node-id="${source.id}"]`
+                  );
+                  let startX, startY;
+                  if (sourceNodeEl) {
+                    const portCenter = getPortCenter(
+                      sourceNodeEl as HTMLElement,
+                      "output",
+                      sourceIdx
+                    );
+                    const canvas = document.getElementById("graph-canvas");
+                    const rect = canvas?.getBoundingClientRect();
+                    if (portCenter && rect) {
+                      startX = (portCenter.x - rect.left) / zoom;
+                      startY = (portCenter.y - rect.top) / zoom;
+                    }
+                  }
+                  // Если не удалось получить координаты — fallback
+                  if (startX === undefined || startY === undefined) {
+                    const sourceY =
+                      source.y +
+                      40 +
+                      (source.output && Array.isArray(source.output)
+                        ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                        : 0);
+                    startX = source.x + 120 + 8;
+                    startY = sourceY + 8;
+                  }
+                  // Конец линии: если мышь над input-портом, берём его центр
+                  let endX =
+                    (mousePos.x -
+                      (document
+                        .getElementById("graph-canvas")
+                        ?.getBoundingClientRect().left || 0)) /
+                    zoom;
+                  let endY =
+                    (mousePos.y -
+                      (document
+                        .getElementById("graph-canvas")
+                        ?.getBoundingClientRect().top || 0)) /
+                    zoom;
+                  const overInput = document.elementFromPoint(
+                    mousePos.x,
+                    mousePos.y
+                  );
+                  if (
+                    overInput &&
+                    overInput.getAttribute &&
+                    overInput.getAttribute("data-port") === "input"
+                  ) {
+                    // Ищем родительский узел
+                    let inputNodeEl = overInput.closest("[data-node-id]");
+                    if (inputNodeEl) {
+                      // Определяем индекс input-порта
+                      const inputPorts = inputNodeEl.querySelectorAll(
+                        '[data-port="input"]'
+                      );
+                      let inputIdx = Array.from(inputPorts).findIndex(
+                        (el) => el === overInput
+                      );
+                      if (inputIdx !== -1) {
+                        const portCenter = getPortCenter(
+                          inputNodeEl as HTMLElement,
+                          "input",
+                          inputIdx
+                        );
+                        const canvas = document.getElementById("graph-canvas");
+                        const rect = canvas?.getBoundingClientRect();
+                        if (portCenter && rect) {
+                          endX = (portCenter.x - rect.left) / zoom;
+                          endY = (portCenter.y - rect.top) / zoom;
+                        }
+                      }
+                    }
+                  }
+                  // Bezier control points
+                  const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
+                  const c1x = startX + dx;
+                  const c1y = startY;
+                  const c2x = endX - dx;
+                  const c2y = endY;
                   return (
-                    <line
-                      x1={startX}
-                      y1={startY}
-                      x2={endX}
-                      y2={endY}
+                    <path
+                      d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
+                      fill="none"
                       stroke="#22c55e"
                       strokeWidth={3}
                       opacity={0.7}
-                      markerEnd="url(#arrowhead)"
                     />
                   );
                 })()}
@@ -614,6 +718,9 @@ export const GraphEditor: React.FC = () => {
                   onDelete={handleDeleteNode}
                   onPortConnectStart={handlePortConnectStart}
                   onPortConnectEnd={handlePortConnectEnd}
+                  dragPort={dragPort}
+                  links={links}
+                  nodes={nodes}
                 />
               ))
             )}

@@ -20,6 +20,9 @@ interface GraphNodeProps {
     portIdx: number,
     type: "input" | "output"
   ) => void;
+  dragPort?: { nodeId: string; portIdx: number } | null;
+  links?: any[];
+  nodes?: any[];
 }
 
 const nodeIcons = {
@@ -56,6 +59,9 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     onDelete,
     onPortConnectStart,
     onPortConnectEnd,
+    dragPort,
+    links,
+    nodes,
   }) => {
     const IconComponent = nodeIcons[node.type];
     const [isDragging, setIsDragging] = React.useState(false);
@@ -76,6 +82,9 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     }, [node.x, node.y, isDragging]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
+      // Не начинаем drag, если клик по порту (input/output)
+      const target = e.target as HTMLElement;
+      if (target && target.dataset && target.dataset.port) return;
       e.preventDefault();
       const rect = e.currentTarget.getBoundingClientRect();
       setDragOffset({
@@ -132,6 +141,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     return (
       <div
         ref={nodeRef}
+        data-node-id={node.id}
         className={`absolute cursor-move select-none ${
           isSelected ? "ring-2 ring-green-500" : ""
         }`}
@@ -151,6 +161,9 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             onPortConnectStart={(nid, idx) =>
               onPortConnectEnd && onPortConnectEnd(nid, idx, "input")
             }
+            dragPort={dragPort}
+            links={links}
+            nodes={nodes}
           />
           {/* Status indicator */}
           <div
