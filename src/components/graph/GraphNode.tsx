@@ -23,6 +23,7 @@ interface GraphNodeProps {
   dragPort?: { nodeId: string; portIdx: number } | null;
   links?: any[];
   nodes?: any[];
+  onDoubleClick?: () => void;
 }
 
 const nodeIcons = {
@@ -62,6 +63,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     dragPort,
     links,
     nodes,
+    onDoubleClick,
   }) => {
     const IconComponent = nodeIcons[node.type];
     const [isDragging, setIsDragging] = React.useState(false);
@@ -134,26 +136,39 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
       }
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
-    const handleDoubleClick = () => {
-      onDelete(node.id);
-    };
+    React.useEffect(() => {
+      if (isSelected && nodeRef.current) {
+        nodeRef.current.focus();
+      }
+    }, [isSelected]);
 
     return (
       <div
         ref={nodeRef}
         data-node-id={node.id}
-        className={`absolute cursor-move select-none ${
-          isSelected ? "ring-2 ring-green-500" : ""
-        }`}
+        className="absolute cursor-move select-none"
         style={{ left: node.x, top: node.y }}
         onMouseDown={handleMouseDown}
-        onDoubleClick={handleDoubleClick}
-        title={`${node.name} - Двойной клик для удаления`}
+        title={node.name}
+        onDoubleClick={onDoubleClick}
+        tabIndex={0}
+        onKeyDown={
+          isSelected
+            ? (e) => {
+                if (e.key === "Backspace" || e.key === "Delete") {
+                  e.preventDefault();
+                  onDelete(node.id);
+                }
+              }
+            : undefined
+        }
       >
         <div
-          className={`relative p-3 rounded-lg border-2 min-w-[120px] ${
-            nodeColors[node.type]
-          } ${isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"}`}
+          className={`relative p-3 rounded-lg min-w-[120px] border-2 ${
+            isSelected ? "border-green-500" : "border-gray-200"
+          } ${nodeColors[node.type]} ${
+            isDragging ? "opacity-100 shadow-lg scale-105" : "shadow-md"
+          }`}
         >
           <InputPorts
             nodeId={node.id}
@@ -164,12 +179,6 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
             dragPort={dragPort}
             links={links}
             nodes={nodes}
-          />
-          {/* Status indicator */}
-          <div
-            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${
-              statusColors[node.status]
-            }`}
           />
           {/* Icon and name */}
           <div className="flex flex-col items-center space-y-2">

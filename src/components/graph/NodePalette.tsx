@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Server, Database, Network, Settings } from "lucide-react";
 
 interface NodePaletteProps {
-  onAddNode: (type: "server" | "database" | "network" | "service") => void;
+  onAddNode: (
+    type: "server" | "database" | "network" | "service" | "api" | "storage"
+  ) => void;
 }
 
 const nodeTypes = [
@@ -65,7 +67,6 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ onAddNode }) => {
             <div
               key={type}
               className={`h-16 flex flex-col items-center justify-center ${color} border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer select-none`}
-              onClick={() => onAddNode(type)}
               draggable
               onDragStart={(e) => handleDragStart(e, type)}
               tabIndex={0}
