@@ -52,7 +52,6 @@ export const GraphEditor: React.FC = () => {
   const [activeFlowId, setActiveFlowId] = useState("flow_1");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
-  const [linkSourceId, setLinkSourceId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -156,32 +155,6 @@ export const GraphEditor: React.FC = () => {
       )
     );
   };
-
-  // Функция для начала или завершения создания связи
-  const handleLinkNode = useCallback(
-    (nodeId: string) => {
-      if (!linkSourceId) {
-        setLinkSourceId(nodeId); // Первый клик — выбираем источник
-        toast.info("Выберите второй узел для создания связи");
-      } else if (linkSourceId && linkSourceId !== nodeId) {
-        // Создаём связь между linkSourceId и nodeId
-        const newLink: GraphLink = {
-          id: generateLinkId(),
-          source: linkSourceId,
-          target: nodeId,
-          type: "network", // по умолчанию
-          status: "active",
-        };
-        setLinks((prev) => [...prev, newLink]);
-        setLinkSourceId(null);
-        setHasChanges(true);
-        toast.success("Связь создана");
-      } else {
-        setLinkSourceId(null); // сброс, если клик по тому же узлу
-      }
-    },
-    [linkSourceId]
-  );
 
   // Обновляю типизацию для новых типов узлов
   type NodeType =
@@ -401,12 +374,12 @@ export const GraphEditor: React.FC = () => {
             }`}
             onClick={() => handleSelectFlow(flow.id)}
           >
-            <input
-              className="bg-transparent font-bold w-20 outline-none"
-              value={flow.name}
-              onChange={(e) => handleRenameFlow(flow.id, e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
+            <span
+              className="font-bold w-20 truncate cursor-default"
+              title={flow.name}
+            >
+              {flow.name}
+            </span>
             {flows.length > 1 && (
               <button
                 className="text-red-400 ml-1"
@@ -720,12 +693,7 @@ export const GraphEditor: React.FC = () => {
                   key={node.id}
                   node={node}
                   isSelected={selectedNodeId === node.id}
-                  onSelect={(id) => {
-                    setSelectedNodeId(id);
-                    if (window.event && (window.event as MouseEvent).shiftKey) {
-                      handleLinkNode(id); // Shift+клик — создать связь
-                    }
-                  }}
+                  onSelect={setSelectedNodeId}
                   onDrag={handleDragNode}
                   onDelete={handleDeleteNode}
                   onPortConnectStart={handlePortConnectStart}
@@ -740,13 +708,21 @@ export const GraphEditor: React.FC = () => {
 
           {/* Canvas info overlay */}
           <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
-            Клик - выбор | Перетаскивание - перемещение | Двойной клик -
-            удаление | Shift+клик по двум узлам - создать связь
+            Клик - выбор | Перетаскивание - перемещение
           </div>
         </div>
 
         {/* Properties Panel */}
         <div className="w-80 p-4 bg-gray-50 border-l border-gray-200">
+          {/* Информация о потоке: редактирование имени */}
+          <div className="mb-4">
+            <div className="text-xs text-gray-500 mb-1">Имя потока</div>
+            <input
+              className="w-full px-2 py-1 border rounded bg-white text-sm font-bold"
+              value={activeFlow.name}
+              onChange={(e) => handleRenameFlow(activeFlow.id, e.target.value)}
+            />
+          </div>
           <PropertiesPanel
             selectedNode={selectedNode}
             onUpdateNode={handleUpdateNode}

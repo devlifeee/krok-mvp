@@ -1,60 +1,35 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Users, 
-  Shield, 
-  Save,
-  Plus,
-  Edit,
-  Trash2,
-  Loader2
-} from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Users, Shield, Save, Plus, Edit, Trash2, Loader2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const Settings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
-    
-    toast({
-      title: "Здравствуйте!",
-      description: "Сохраняем настройки...",
-    });
+
+    toast.success("Сохраняем настройки...");
 
     setTimeout(() => {
-      toast({
-        title: "Загружаем...",
-        description: "Применяем изменения к системе",
-      });
+      toast.success("Применяем изменения к системе");
     }, 1000);
 
     setTimeout(() => {
       setIsSaving(false);
-      toast({
-        title: "Загружено!",
-        description: "Настройки успешно сохранены",
-        variant: "default",
-      });
+      toast.success("Настройки успешно сохранены");
     }, 3000);
   };
 
   const handleUserAction = (action: string, userName: string) => {
-    toast({
-      title: "Здравствуйте!",
-      description: `${action} пользователя ${userName}...`,
-    });
+    toast.success(`${action} пользователя ${userName}...`);
 
     setTimeout(() => {
-      toast({
-        title: "Загружено!",
-        description: `Действие выполнено для ${userName}`,
-      });
+      toast.success(`Действие выполнено для ${userName}`);
     }, 1500);
   };
 
@@ -63,18 +38,20 @@ const Settings: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Настройки системы</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Настройки системы
+          </h1>
           <p className="text-gray-600 mt-1">
             Управление пользователями и конфигурация системы
           </p>
         </div>
-        <Button 
-          size="sm" 
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          {isSaving ? 'Сохраняем...' : 'Сохранить'}
+        <Button size="sm" onClick={handleSave} disabled={isSaving}>
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          {isSaving ? "Сохраняем..." : "Сохранить"}
         </Button>
       </div>
 
@@ -95,7 +72,7 @@ const Settings: React.FC = () => {
                 Добавить
               </Button>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
@@ -104,10 +81,12 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge>Admin</Badge>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleUserAction('Редактируем', 'admin@krokos.com')}
+                    onClick={() =>
+                      handleUserAction("Редактируем", "admin@krokos.com")
+                    }
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
@@ -121,17 +100,21 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">Editor</Badge>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleUserAction('Редактируем', 'editor@krokos.com')}
+                    onClick={() =>
+                      handleUserAction("Редактируем", "editor@krokos.com")
+                    }
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleUserAction('Удаляем', 'editor@krokos.com')}
+                    onClick={() =>
+                      handleUserAction("Удаляем", "editor@krokos.com")
+                    }
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -145,17 +128,21 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">Viewer</Badge>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleUserAction('Редактируем', 'viewer@krokos.com')}
+                    onClick={() =>
+                      handleUserAction("Редактируем", "viewer@krokos.com")
+                    }
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    onClick={() => handleUserAction('Удаляем', 'viewer@krokos.com')}
+                    onClick={() =>
+                      handleUserAction("Удаляем", "viewer@krokos.com")
+                    }
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -176,37 +163,27 @@ const Settings: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="session-timeout">Время сессии (часы)</Label>
-              <Input 
-                id="session-timeout" 
-                type="number"
-                defaultValue="12"
-              />
+              <Input id="session-timeout" type="number" defaultValue="12" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password-policy">Минимальная длина пароля</Label>
-              <Input 
-                id="password-policy" 
-                type="number"
-                defaultValue="8"
-              />
+              <Input id="password-policy" type="number" defaultValue="8" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="api-endpoint">API Endpoint</Label>
-              <Input 
-                id="api-endpoint" 
+              <Input
+                id="api-endpoint"
                 defaultValue="https://api.krokos.local"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="backup-interval">Интервал резервного копирования (дни)</Label>
-              <Input 
-                id="backup-interval" 
-                type="number"
-                defaultValue="7"
-              />
+              <Label htmlFor="backup-interval">
+                Интервал резервного копирования (дни)
+              </Label>
+              <Input id="backup-interval" type="number" defaultValue="7" />
             </div>
           </CardContent>
         </Card>
@@ -220,37 +197,25 @@ const Settings: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="refresh-interval">Интервал обновления данных (сек)</Label>
-              <Input 
-                id="refresh-interval" 
-                type="number"
-                defaultValue="30"
-              />
+              <Label htmlFor="refresh-interval">
+                Интервал обновления данных (сек)
+              </Label>
+              <Input id="refresh-interval" type="number" defaultValue="30" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="max-nodes">Максимальное количество узлов</Label>
-              <Input 
-                id="max-nodes" 
-                type="number"
-                defaultValue="1000"
-              />
+              <Input id="max-nodes" type="number" defaultValue="1000" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="log-level">Уровень логирования</Label>
-              <Input 
-                id="log-level" 
-                defaultValue="INFO"
-              />
+              <Input id="log-level" defaultValue="INFO" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="storage-path">Путь к данным</Label>
-              <Input 
-                id="storage-path" 
-                defaultValue="/var/lib/krokos-graph"
-              />
+              <Input id="storage-path" defaultValue="/var/lib/krokos-graph" />
             </div>
           </div>
         </CardContent>

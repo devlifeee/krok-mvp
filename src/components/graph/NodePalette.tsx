@@ -67,7 +67,6 @@ export const NodePalette: React.FC<NodePaletteProps> = ({ onAddNode }) => {
             <div
               key={type}
               className={`h-16 flex flex-col items-center justify-center ${color} border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer select-none`}
-              onClick={() => onAddNode(type)}
               draggable
               onDragStart={(e) => handleDragStart(e, type)}
               tabIndex={0}

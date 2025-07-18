@@ -134,10 +134,6 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
       }
     }, [isDragging, handleMouseMove, handleMouseUp]);
 
-    const handleDoubleClick = () => {
-      onDelete(node.id);
-    };
-
     React.useEffect(() => {
       if (isSelected && nodeRef.current) {
         nodeRef.current.focus();
@@ -151,8 +147,7 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
         className="absolute cursor-move select-none"
         style={{ left: node.x, top: node.y }}
         onMouseDown={handleMouseDown}
-        onDoubleClick={handleDoubleClick}
-        title={`${node.name} - Двойной клик для удаления`}
+        title={node.name}
         tabIndex={0}
         onKeyDown={
           isSelected
