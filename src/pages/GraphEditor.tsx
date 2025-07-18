@@ -388,9 +388,11 @@ export const GraphEditor: React.FC = () => {
         // Обновляем состояние
         setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
         setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
+
         setSelectedNodeId(null);
         setSelectedLinkId(null);
         setHasChanges(true);
+
         toast.success(
           `Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`
         );
