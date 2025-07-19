@@ -22,7 +22,7 @@ export const NodeDetailsModal: React.FC<NodeDetailsModalProps> = ({
 
   return (
     <div
-      className={`absolute top-0 right-[20rem] h-full w-[28rem] bg-white transition-all duration-300 ease-in-out border-l border-gray-200 flex flex-col overflow-hidden z-[200] ${
+      className={`absolute top-0 right-[20rem] h-full w-[28rem] bg-white transition-all duration-300 ease-in-out border-l border-gray-200 flex flex-col overflow-hidden z-[50] ${
         isOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
       }`}
       style={{ maxWidth: "100vw" }}

@@ -130,10 +130,6 @@ export const GraphEditor: React.FC = () => {
         <div className="flex-1 relative bg-white overflow-hidden flex">
           {/* Canvas + overlay */}
           <div className="flex-1 relative">
-            {/* Overlay только над canvas */}
-            {modalNode && (
-              <div className="absolute inset-0 bg-black bg-opacity-40 z-[90] transition-opacity duration-300 pointer-events-none" />
-            )}
             <div
               id="graph-canvas"
               className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
@@ -147,6 +143,10 @@ export const GraphEditor: React.FC = () => {
               onDrop={handleCanvasDrop}
               onDragOver={handleCanvasDragOver}
             >
+              {/* Overlay только над canvas */}
+              {modalNode && (
+                <div className="absolute inset-0 bg-black bg-opacity-40 z-[90] transition-opacity duration-300 pointer-events-none" />
+              )}
               {/* SVG слой для связей */}
               <svg
                 className="absolute inset-0 w-full h-full"
@@ -393,7 +393,7 @@ export const GraphEditor: React.FC = () => {
             <CanvasInfoOverlay />
           </div>
           {/* Properties Panel (всегда видна) */}
-          <div className="w-80 p-4 bg-gray-50 border-l border-gray-200 h-full">
+          <div className="w-80 p-4 bg-gray-50 border-l border-gray-200 h-full relative z-[100]">
             {/* Информация о потоке: редактирование имени */}
             <div className="mb-4">
               <div className="text-xs text-gray-500 mb-1">Имя потока</div>
