@@ -8,6 +8,7 @@ import {
   ensureNodesHaveHealth,
   ensureNodeListHasHealth,
 } from "./utils";
+import { createDefaultNodeProperties } from "./nodeRedUtils";
 
 interface Flow {
   id: string;
@@ -108,7 +109,7 @@ export function useGraphEditorState() {
       y: 100 + Math.random() * 200,
       health: Math.floor(Math.random() * 100),
       status: "healthy",
-      properties: {},
+      properties: createDefaultNodeProperties(type),
     };
     setNodes((prev) => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
@@ -303,7 +304,7 @@ export function useGraphEditorState() {
       y,
       health: Math.floor(Math.random() * 100),
       status: "healthy",
-      properties: {},
+      properties: createDefaultNodeProperties(type),
     };
     setNodes((prev) => [...prev, newNode]);
     setSelectedNodeId(newNode.id);
