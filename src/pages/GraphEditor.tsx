@@ -19,7 +19,20 @@ import { PropertiesPanel } from "@/components/graph/PropertiesPanel";
 import { GraphLinkLine } from "@/components/graph/GraphLinkLine";
 import { toast } from "sonner";
 import { getPortCenter } from "@/lib/portUtils";
+import { useMousePosition } from "@/lib/useMousePosition";
+import {
+  generateNodeId,
+  generateLinkId,
+  generateFlowId,
+  ensureNodesHaveHealth,
+  ensureNodeListHasHealth,
+} from "@/lib/utils";
 import ReactModal from "react-modal";
+import { NodeDetailsModal } from "@/components/graph/NodeDetailsModal";
+import { GraphEditorHeader } from "@/components/graph/GraphEditorHeader";
+import { FlowTabs } from "@/components/graph/FlowTabs";
+import { CanvasInfoOverlay } from "@/components/graph/CanvasInfoOverlay";
+import { useGraphEditorState } from "@/lib/useGraphEditorState";
 
 // Новый тип для Flow
 interface Flow {
@@ -29,104 +42,57 @@ interface Flow {
   links: GraphLink[];
 }
 
-// Для отслеживания позиции мыши при drag
-function useMousePosition() {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  React.useEffect(() => {
-    const handler = (e: MouseEvent) => setPos({ x: e.clientX, y: e.clientY });
-    window.addEventListener("mousemove", handler);
-    return () => window.removeEventListener("mousemove", handler);
-  }, []);
-  return pos;
-}
-
-// Модальное окно для детальных настроек узла
-const NodeDetailsModal: React.FC<{
-  node: GraphNodeType;
-  isOpen: boolean;
-  onClose: () => void;
-  onUpdate: (id: string, updates: Partial<GraphNodeType>) => void;
-}> = ({ node, isOpen, onClose, onUpdate }) => {
-  const [localNode, setLocalNode] = React.useState(node);
-  React.useEffect(() => {
-    setLocalNode(node);
-  }, [node]);
-  if (!node) return null;
-  return (
-    <ReactModal
-      isOpen={isOpen}
-      onRequestClose={onClose}
-      ariaHideApp={false}
-      className="bg-white rounded-lg p-6 max-w-lg mx-auto mt-24 shadow-xl outline-none"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
-    >
-      <h2 className="text-xl font-bold mb-4">Настройки узла</h2>
-      <div className="mb-2">
-        <label className="block text-xs text-gray-500 mb-1">ID</label>
-        <div className="font-mono text-sm mb-2">{localNode.id}</div>
-      </div>
-      <div className="mb-2">
-        <label className="block text-xs text-gray-500 mb-1">Тип</label>
-        <div className="font-mono text-sm mb-2">{localNode.type}</div>
-      </div>
-      <div className="mb-2">
-        <label className="block text-xs text-gray-500 mb-1">Название</label>
-        <input
-          className="border rounded px-2 py-1 w-full"
-          value={localNode.name}
-          onChange={(e) => setLocalNode({ ...localNode, name: e.target.value })}
-        />
-      </div>
-      {/* Можно добавить другие поля по необходимости */}
-      <div className="flex gap-2 mt-4">
-        <button
-          className="px-4 py-2 rounded bg-green-600 text-white font-bold"
-          onClick={() => {
-            onUpdate(localNode.id, localNode);
-            onClose();
-          }}
-        >
-          Сохранить
-        </button>
-        <button
-          className="px-4 py-2 rounded bg-gray-200 text-gray-800 font-bold"
-          onClick={onClose}
-        >
-          Отмена
-        </button>
-      </div>
-    </ReactModal>
-  );
-};
-
 export const GraphEditor: React.FC = () => {
-  // flows: массив потоков
-  const [flows, setFlows] = useState<Flow[]>([
-    {
-      id: "flow_1",
-      name: "Поток 1",
-      nodes: [],
-      links: [],
-    },
-  ]);
-  const [activeFlowId, setActiveFlowId] = useState("flow_1");
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [hasChanges, setHasChanges] = useState(false);
+  const {
+    flows,
+    setFlows,
+    activeFlowId,
+    setActiveFlowId,
+    selectedNodeId,
+    setSelectedNodeId,
+    selectedLinkId,
+    setSelectedLinkId,
+    zoom,
+    setZoom,
+    hasChanges,
+    setHasChanges,
+    dragPort,
+    setDragPort,
+    modalNodeId,
+    setModalNodeId,
+    handleAddFlow,
+    handleSelectFlow,
+    handleRenameFlow,
+    handleDeleteFlow,
+    setNodes,
+    setLinks,
+    handleAddNode,
+    handleSelectNode,
+    handleDragNode,
+    handleUpdateNode,
+    handleDeleteNode,
+    handleSave,
+    handleExport,
+    handleImport,
+    handleZoomIn,
+    handleZoomOut,
+    handleReset,
+    handleClearAll,
+    handlePortConnectStart,
+    handlePortConnectEnd,
+    handleCanvasDrop,
+    handleCanvasDragOver,
+    handleAddNodeAt,
+  } = useGraphEditorState();
 
-  // Для хранения временного состояния drag from output port
-  const [dragPort, setDragPort] = useState<{
-    nodeId: string;
-    portIdx: number;
-  } | null>(null);
-
-  // Для модального окна настроек узла
-  const [modalNodeId, setModalNodeId] = useState<string | null>(null);
-
-  // Получить активный поток
   const activeFlow = flows.find((f) => f.id === activeFlowId)!;
-  const nodes = activeFlow.nodes;
+  const nodes = activeFlow.nodes.map((node) => ({
+    ...node,
+    health:
+      typeof node.health === "number"
+        ? node.health
+        : Math.floor(Math.random() * 100),
+  }));
   const links = activeFlow.links;
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) || null;
   const mousePos = useMousePosition();
@@ -469,122 +435,29 @@ export const GraphEditor: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">Редактор графа</h1>
-            <Badge variant={hasChanges ? "destructive" : "secondary"}>
-              {hasChanges ? "Не сохранено" : "Сохранено"}
-            </Badge>
-            <span className="text-sm text-gray-500">
-              Узлов: {nodes.length} | Масштаб: {Math.round(zoom * 100)}%
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleImport}>
-              <Upload className="h-4 w-4 mr-2" />
-              Импорт
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Экспорт
-            </Button>
-            <Button size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-2" />
-              Сохранить
-            </Button>
-          </div>
-        </div>
-      </div>
+      <GraphEditorHeader
+        hasChanges={hasChanges}
+        nodesCount={nodes.length}
+        zoom={zoom}
+        onImport={handleImport}
+        onExport={handleExport}
+        onSave={handleSave}
+      />
 
       {/* UI для flows (сверху) */}
-      <div className="flex items-center gap-2 p-2 bg-gray-100 border-b">
-        {flows.map((flow) => (
-          <div
-            key={flow.id}
-            className={`flex items-center gap-1 px-3 py-1 rounded cursor-pointer ${
-              activeFlowId === flow.id
-                ? "bg-white border border-green-400 font-bold"
-                : "hover:bg-gray-200"
-            }`}
-            onClick={() => handleSelectFlow(flow.id)}
-          >
-            <span
-              className="font-bold w-20 truncate cursor-default"
-              title={flow.name}
-            >
-              {flow.name}
-            </span>
-            {flows.length > 1 && (
-              <button
-                className="text-red-400 ml-1"
-                title="Удалить поток"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteFlow(flow.id);
-                }}
-              >
-                ×
-              </button>
-            )}
-          </div>
-        ))}
-        <button
-          className="ml-2 px-2 py-1 bg-green-200 rounded text-green-900 font-bold"
-          onClick={handleAddFlow}
-        >
-          + Новый поток
-        </button>
-      </div>
+      <FlowTabs
+        flows={flows}
+        activeFlowId={activeFlowId}
+        onSelectFlow={handleSelectFlow}
+        onAddFlow={handleAddFlow}
+        onDeleteFlow={handleDeleteFlow}
+        onRenameFlow={handleRenameFlow}
+      />
 
       <div className="flex-1 flex">
         {/* Tool Palette */}
         <div className="w-64 p-4 bg-gray-50 border-r border-gray-200">
           <NodePalette onAddNode={handleAddNode} />
-
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-lg">Управление</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={handleZoomIn}
-              >
-                <ZoomIn className="h-4 w-4 mr-2" />
-                Увеличить
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={handleZoomOut}
-              >
-                <ZoomOut className="h-4 w-4 mr-2" />
-                Уменьшить
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start"
-                onClick={handleReset}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Сбросить
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full justify-start"
-                onClick={handleClearAll}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Очистить все
-              </Button>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Main Canvas */}
@@ -606,118 +479,52 @@ export const GraphEditor: React.FC = () => {
               className="absolute inset-0 w-full h-full"
               style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
             >
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="10"
-                  refY="3.5"
-                  orient="auto"
-                  markerUnits="strokeWidth"
-                >
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
-                </marker>
-              </defs>
-              {links.map((link) => {
-                const source = nodes.find(
-                  (n) => n.id === link.source.split(":")[0]
-                );
-                const target = nodes.find(
-                  (n) => n.id === link.target.split(":")[0]
-                );
-                if (!source || !target) return null;
-                const sourceIdx = parseInt(
-                  link.source.split(":")[1] || "0",
-                  10
-                );
-                const targetIdx = parseInt(
-                  link.target.split(":")[1] || "0",
-                  10
-                );
-                // Получаем DOM-элементы узлов
-                const sourceNodeEl = document.querySelector(
-                  `[data-node-id="${source.id}"]`
-                );
-                const targetNodeEl = document.querySelector(
-                  `[data-node-id="${target.id}"]`
-                );
-                let sx, sy, tx, ty;
-                if (sourceNodeEl) {
-                  const portCenter = getPortCenter(
-                    sourceNodeEl as HTMLElement,
-                    "output",
-                    sourceIdx
+              {/* Overlay только над canvas */}
+              {modalNode && (
+                <div className="absolute inset-0 bg-black bg-opacity-40 z-[90] transition-opacity duration-300 pointer-events-none" />
+              )}
+              {/* SVG слой для связей */}
+              <svg
+                className="absolute inset-0 w-full h-full"
+                style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
+              >
+                <defs>
+                  <marker
+                    id="arrowhead"
+                    markerWidth="10"
+                    markerHeight="7"
+                    refX="10"
+                    refY="3.5"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e" />
+                  </marker>
+                </defs>
+                {links.map((link) => {
+                  const source = nodes.find(
+                    (n) => n.id === link.source.split(":")[0]
                   );
-                  const canvas = document.getElementById("graph-canvas");
-                  const rect = canvas?.getBoundingClientRect();
-                  if (portCenter && rect) {
-                    sx = (portCenter.x - rect.left) / zoom;
-                    sy = (portCenter.y - rect.top) / zoom;
-                  }
-                }
-                if (targetNodeEl) {
-                  const portCenter = getPortCenter(
-                    targetNodeEl as HTMLElement,
-                    "input",
-                    targetIdx
+                  const target = nodes.find(
+                    (n) => n.id === link.target.split(":")[0]
                   );
-                  const canvas = document.getElementById("graph-canvas");
-                  const rect = canvas?.getBoundingClientRect();
-                  if (portCenter && rect) {
-                    tx = (portCenter.x - rect.left) / zoom;
-                    ty = (portCenter.y - rect.top) / zoom;
-                  }
-                }
-                // fallback если не удалось получить DOM
-                if (sx === undefined || sy === undefined) {
-                  const sourceY =
-                    source.y +
-                    40 +
-                    (source.output && Array.isArray(source.output)
-                      ? (sourceIdx - (source.output.length - 1) / 2) * 16
-                      : 0);
-                  sx = source.x + 120 + 8;
-                  sy = sourceY + 8;
-                }
-                if (tx === undefined || ty === undefined) {
-                  const targetY =
-                    target.y +
-                    40 +
-                    (target.input && Array.isArray(target.input)
-                      ? (targetIdx - (target.input.length - 1) / 2) * 16
-                      : 0);
-                  tx = target.x + 8;
-                  ty = targetY + 8;
-                }
-                return (
-                  <GraphLinkLine
-                    key={link.id}
-                    source={{ x: sx, y: sy, width: 0, height: 0 }}
-                    target={{ x: tx, y: ty, width: 0, height: 0 }}
-                    color={
-                      link.status === "active"
-                        ? "#22c55e"
-                        : link.status === "error"
-                        ? "#ef4444"
-                        : "#a3a3a3"
-                    }
-                    markerEnd={false}
-                    opacity={0.8}
-                  />
-                );
-              })}
-              {dragPort &&
-                mousePos &&
-                (() => {
-                  const source = nodes.find((n) => n.id === dragPort.nodeId);
-                  if (!source) return null;
-                  const sourceIdx = dragPort.portIdx;
-                  // Получаем DOM-элемент узла-источника
+                  if (!source || !target) return null;
+                  const sourceIdx = parseInt(
+                    link.source.split(":")[1] || "0",
+                    10
+                  );
+                  const targetIdx = parseInt(
+                    link.target.split(":")[1] || "0",
+                    10
+                  );
+                  // Получаем DOM-элементы узлов
                   const sourceNodeEl = document.querySelector(
                     `[data-node-id="${source.id}"]`
                   );
-                  let startX, startY;
+                  const targetNodeEl = document.querySelector(
+                    `[data-node-id="${target.id}"]`
+                  );
+                  let sx, sy, tx, ty;
                   if (sourceNodeEl) {
                     const portCenter = getPortCenter(
                       sourceNodeEl as HTMLElement,
@@ -727,101 +534,177 @@ export const GraphEditor: React.FC = () => {
                     const canvas = document.getElementById("graph-canvas");
                     const rect = canvas?.getBoundingClientRect();
                     if (portCenter && rect) {
-                      startX = (portCenter.x - rect.left) / zoom;
-                      startY = (portCenter.y - rect.top) / zoom;
+                      sx = (portCenter.x - rect.left) / zoom;
+                      sy = (portCenter.y - rect.top) / zoom;
                     }
                   }
-                  // Если не удалось получить координаты — fallback
-                  if (startX === undefined || startY === undefined) {
+                  if (targetNodeEl) {
+                    const portCenter = getPortCenter(
+                      targetNodeEl as HTMLElement,
+                      "input",
+                      targetIdx
+                    );
+                    const canvas = document.getElementById("graph-canvas");
+                    const rect = canvas?.getBoundingClientRect();
+                    if (portCenter && rect) {
+                      tx = (portCenter.x - rect.left) / zoom;
+                      ty = (portCenter.y - rect.top) / zoom;
+                    }
+                  }
+                  // fallback если не удалось получить DOM
+                  if (sx === undefined || sy === undefined) {
                     const sourceY =
                       source.y +
                       40 +
                       (source.output && Array.isArray(source.output)
                         ? (sourceIdx - (source.output.length - 1) / 2) * 16
                         : 0);
-                    startX = source.x + 120 + 8;
-                    startY = sourceY + 8;
+                    sx = source.x + 120 + 8;
+                    sy = sourceY + 8;
                   }
-                  // Конец линии: если мышь над input-портом, берём его центр
-                  let endX =
-                    (mousePos.x -
-                      (document
-                        .getElementById("graph-canvas")
-                        ?.getBoundingClientRect().left || 0)) /
-                    zoom;
-                  let endY =
-                    (mousePos.y -
-                      (document
-                        .getElementById("graph-canvas")
-                        ?.getBoundingClientRect().top || 0)) /
-                    zoom;
-                  const overInput = document.elementFromPoint(
-                    mousePos.x,
-                    mousePos.y
+                  if (tx === undefined || ty === undefined) {
+                    const targetY =
+                      target.y +
+                      40 +
+                      (target.input && Array.isArray(target.input)
+                        ? (targetIdx - (target.input.length - 1) / 2) * 16
+                        : 0);
+                    tx = target.x + 8;
+                    ty = targetY + 8;
+                  }
+                  return (
+                    <GraphLinkLine
+                      key={link.id}
+                      source={{ x: sx, y: sy, width: 0, height: 0 }}
+                      target={{ x: tx, y: ty, width: 0, height: 0 }}
+                      color={
+                        link.status === "active"
+                          ? "#22c55e"
+                          : link.status === "error"
+                          ? "#ef4444"
+                          : "#a3a3a3"
+                      }
+                      markerEnd={false}
+                      opacity={0.8}
+                    />
                   );
-                  if (
-                    overInput &&
-                    overInput.getAttribute &&
-                    overInput.getAttribute("data-port") === "input"
-                  ) {
-                    // Ищем родительский узел
-                    let inputNodeEl = overInput.closest("[data-node-id]");
-                    if (inputNodeEl) {
-                      // Определяем индекс input-порта
-                      const inputPorts = inputNodeEl.querySelectorAll(
-                        '[data-port="input"]'
+                })}
+                {dragPort &&
+                  mousePos &&
+                  (() => {
+                    const source = nodes.find((n) => n.id === dragPort.nodeId);
+                    if (!source) return null;
+                    const sourceIdx = dragPort.portIdx;
+                    // Получаем DOM-элемент узла-источника
+                    const sourceNodeEl = document.querySelector(
+                      `[data-node-id="${source.id}"]`
+                    );
+                    let startX, startY;
+                    if (sourceNodeEl) {
+                      const portCenter = getPortCenter(
+                        sourceNodeEl as HTMLElement,
+                        "output",
+                        sourceIdx
                       );
-                      let inputIdx = Array.from(inputPorts).findIndex(
-                        (el) => el === overInput
-                      );
-                      if (inputIdx !== -1) {
-                        const portCenter = getPortCenter(
-                          inputNodeEl as HTMLElement,
-                          "input",
-                          inputIdx
+                      const canvas = document.getElementById("graph-canvas");
+                      const rect = canvas?.getBoundingClientRect();
+                      if (portCenter && rect) {
+                        startX = (portCenter.x - rect.left) / zoom;
+                        startY = (portCenter.y - rect.top) / zoom;
+                      }
+                    }
+                    // Если не удалось получить координаты — fallback
+                    if (startX === undefined || startY === undefined) {
+                      const sourceY =
+                        source.y +
+                        40 +
+                        (source.output && Array.isArray(source.output)
+                          ? (sourceIdx - (source.output.length - 1) / 2) * 16
+                          : 0);
+                      startX = source.x + 120 + 8;
+                      startY = sourceY + 8;
+                    }
+                    // Конец линии: если мышь над input-портом, берём его центр
+                    let endX =
+                      (mousePos.x -
+                        (document
+                          .getElementById("graph-canvas")
+                          ?.getBoundingClientRect().left || 0)) /
+                      zoom;
+                    let endY =
+                      (mousePos.y -
+                        (document
+                          .getElementById("graph-canvas")
+                          ?.getBoundingClientRect().top || 0)) /
+                      zoom;
+                    const overInput = document.elementFromPoint(
+                      mousePos.x,
+                      mousePos.y
+                    );
+                    if (
+                      overInput &&
+                      overInput.getAttribute &&
+                      overInput.getAttribute("data-port") === "input"
+                    ) {
+                      // Ищем родительский узел
+                      let inputNodeEl = overInput.closest("[data-node-id]");
+                      if (inputNodeEl) {
+                        // Определяем индекс input-порта
+                        const inputPorts = inputNodeEl.querySelectorAll(
+                          '[data-port="input"]'
                         );
-                        const canvas = document.getElementById("graph-canvas");
-                        const rect = canvas?.getBoundingClientRect();
-                        if (portCenter && rect) {
-                          endX = (portCenter.x - rect.left) / zoom;
-                          endY = (portCenter.y - rect.top) / zoom;
+                        let inputIdx = Array.from(inputPorts).findIndex(
+                          (el) => el === overInput
+                        );
+                        if (inputIdx !== -1) {
+                          const portCenter = getPortCenter(
+                            inputNodeEl as HTMLElement,
+                            "input",
+                            inputIdx
+                          );
+                          const canvas =
+                            document.getElementById("graph-canvas");
+                          const rect = canvas?.getBoundingClientRect();
+                          if (portCenter && rect) {
+                            endX = (portCenter.x - rect.left) / zoom;
+                            endY = (portCenter.y - rect.top) / zoom;
+                          }
                         }
                       }
                     }
-                  }
-                  // Bezier control points
-                  const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
-                  const c1x = startX + dx;
-                  const c1y = startY;
-                  const c2x = endX - dx;
-                  const c2y = endY;
-                  return (
-                    <path
-                      d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth={3}
-                      opacity={0.7}
-                    />
-                  );
-                })()}
-            </svg>
-            {nodes.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center text-gray-500">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
-                    <Settings className="h-8 w-8" />
+                    // Bezier control points
+                    const dx = Math.max(Math.abs(endX - startX) * 0.5, 40);
+                    const c1x = startX + dx;
+                    const c1y = startY;
+                    const c2x = endX - dx;
+                    const c2y = endY;
+                    return (
+                      <path
+                        d={`M${startX},${startY} C${c1x},${c1y} ${c2x},${c2y} ${endX},${endY}`}
+                        fill="none"
+                        stroke="#22c55e"
+                        strokeWidth={3}
+                        opacity={0.7}
+                      />
+                    );
+                  })()}
+              </svg>
+              {nodes.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center text-gray-500">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-white rounded-lg border border-gray-300 flex items-center justify-center">
+                      <Settings className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">
+                      Начните создание графа
+                    </h3>
+                    <p className="text-sm">
+                      Добавьте компоненты из панели инструментов
+                      <br />
+                      или импортируйте существующую топологию
+                    </p>
                   </div>
-                  <h3 className="text-lg font-medium mb-2">
-                    Начните создание графа
-                  </h3>
-                  <p className="text-sm">
-                    Добавьте компоненты из панели инструментов
-                    <br />
-                    или импортируйте существующую топологию
-                  </p>
                 </div>
-              </div>
             ) : (
               <>
                 {nodes.map((node) => (
@@ -848,40 +731,51 @@ export const GraphEditor: React.FC = () => {
           <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
             Клик - выбор | Перетаскивание - перемещение
           </div>
-        </div>
-
-        {/* Properties Panel */}
-        <div className="w-80 p-4 bg-gray-50 border-l border-gray-200">
-          {/* Информация о потоке: редактирование имени */}
-          <div className="mb-4">
-            <div className="text-xs text-gray-500 mb-1">Имя потока</div>
-            <input
-              className="w-full px-2 py-1 border rounded bg-white text-sm font-bold"
-              value={activeFlow.name}
-              onChange={(e) => handleRenameFlow(activeFlow.id, e.target.value)}
+          {/* Properties Panel (всегда видна) */}
+          <div className="w-80 p-4 bg-gray-50 border-l border-gray-200 h-full relative z-[100]">
+            {/* Информация о потоке: редактирование имени */}
+            <div className="mb-4">
+              <div className="text-xs text-gray-500 mb-1">Имя потока</div>
+              <input
+                className="w-full px-2 py-1 border rounded bg-white text-sm font-bold"
+                value={activeFlow.name}
+                onChange={(e) =>
+                  handleRenameFlow(activeFlow.id, e.target.value)
+                }
+              />
+            </div>
+            <PropertiesPanel
+              selectedNode={selectedNode}
+              onUpdateNode={handleUpdateNode}
+              onDeleteNode={handleDeleteNode}
+              links={links}
+              onSelectLink={setSelectedLinkId}
+              selectedLinkId={selectedLinkId}
+              flow={activeFlow}
+              isNodeSelected={!!selectedNode}
             />
           </div>
-          <PropertiesPanel
-            selectedNode={selectedNode}
-            onUpdateNode={handleUpdateNode}
-            onDeleteNode={handleDeleteNode}
-            links={links}
-            onSelectLink={setSelectedLinkId}
-            selectedLinkId={selectedLinkId}
-            flow={activeFlow}
-            isNodeSelected={!!selectedNode}
+          {/* NodeDetailsModal - рендерится только когда открыт */}
+          <NodeDetailsModal
+            node={
+              modalNode ||
+              nodes[0] || {
+                id: "",
+                type: "inject" as any,
+                name: "",
+                x: 0,
+                y: 0,
+                health: 0,
+                status: "unknown" as any,
+                properties: {},
+              }
+            }
+            isOpen={!!modalNode}
+            onClose={() => setModalNodeId(null)}
+            onUpdate={handleUpdateNode}
           />
         </div>
       </div>
-      {/* Модальное окно для настроек узла */}
-      {modalNode && (
-        <NodeDetailsModal
-          node={modalNode}
-          isOpen={!!modalNode}
-          onClose={() => setModalNodeId(null)}
-          onUpdate={handleUpdateNode}
-        />
-      )}
     </div>
   );
 };

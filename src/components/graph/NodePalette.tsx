@@ -28,7 +28,7 @@ interface NodePaletteProps {
 const nodeGroups = [
   {
     group: "Логика",
-    color: "bg-blue-50 hover:bg-blue-100",
+    color: "bg-yellow-50 hover:bg-yellow-100",
     nodes: [
       { type: "inject" as const, icon: Zap, label: "Inject" },
       { type: "debug" as const, icon: Bug, label: "Debug" },
@@ -61,7 +61,7 @@ const nodeGroups = [
   },
   {
     group: "Система",
-    color: "bg-gray-100 hover:bg-gray-200",
+    color: "bg-blue-50 hover:bg-blue-100",
     nodes: [
       { type: "server" as const, icon: Server, label: "Сервер" },
       { type: "database" as const, icon: Database, label: "БД" },
