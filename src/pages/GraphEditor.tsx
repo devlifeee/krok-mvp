@@ -98,340 +98,6 @@ export const GraphEditor: React.FC = () => {
   const mousePos = useMousePosition();
   const modalNode = nodes.find((n) => n.id === modalNodeId) || null;
 
-  // Начало drag с output порта
-  const handlePortConnectStart = (
-    nodeId: string,
-    portIdx: number,
-    type: "output" | "input"
-  ) => {
-    if (type === "output") {
-      setDragPort({ nodeId, portIdx });
-    }
-  };
-  // Drop на input порт
-  const handlePortConnectEnd = (
-    nodeId: string,
-    portIdx: number,
-    type: "output" | "input"
-  ) => {
-    if (type === "input" && dragPort) {
-      console.log("DROP", { from: dragPort, to: { nodeId, portIdx } });
-      // Создать связь между dragPort (output) и этим input
-      const newLink: GraphLink = {
-        id: generateLinkId(),
-        source: dragPort.nodeId + ":" + dragPort.portIdx,
-        target: nodeId + ":" + portIdx,
-        type: "network",
-        status: "active",
-      };
-      setLinks((prev) => [...prev, newLink]);
-      setHasChanges(true);
-      setDragPort(null);
-      toast.success("Связь между портами создана");
-    }
-  };
-
-  // Генерация id
-  const generateNodeId = () =>
-    `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const generateLinkId = () =>
-    `link_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const generateFlowId = () =>
-    `flow_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  // CRUD для flows
-  const handleAddFlow = () => {
-    const newFlow: Flow = {
-      id: generateFlowId(),
-      name: `Поток ${flows.length + 1}`,
-      nodes: [],
-      links: [],
-    };
-    setFlows((prev) => [...prev, newFlow]);
-    setActiveFlowId(newFlow.id);
-    setSelectedNodeId(null);
-    setSelectedLinkId(null);
-  };
-  const handleSelectFlow = (flowId: string) => {
-    setActiveFlowId(flowId);
-    setSelectedNodeId(null);
-    setSelectedLinkId(null);
-  };
-  const handleRenameFlow = (flowId: string, name: string) => {
-    setFlows((prev) => prev.map((f) => (f.id === flowId ? { ...f, name } : f)));
-  };
-  const handleDeleteFlow = (flowId: string) => {
-    if (flows.length === 1) return;
-    setFlows((prev) => prev.filter((f) => f.id !== flowId));
-    if (activeFlowId === flowId) {
-      setActiveFlowId(flows.find((f) => f.id !== flowId)!.id);
-    }
-    setSelectedNodeId(null);
-    setSelectedLinkId(null);
-  };
-
-  // Все функции для nodes/links теперь работают только с nodes/links активного потока
-  const setNodes = (updater: (prev: GraphNodeType[]) => GraphNodeType[]) => {
-    setFlows((prev) =>
-      prev.map((f) =>
-        f.id === activeFlowId ? { ...f, nodes: updater(f.nodes) } : f
-      )
-    );
-  };
-  const setLinks = (updater: (prev: GraphLink[]) => GraphLink[]) => {
-    setFlows((prev) =>
-      prev.map((f) =>
-        f.id === activeFlowId ? { ...f, links: updater(f.links) } : f
-      )
-    );
-  };
-
-  // Обновляю типизацию для новых типов узлов
-  type NodeType =
-    | "server"
-    | "database"
-    | "network"
-    | "service"
-    | "api"
-    | "storage";
-
-  const handleAddNode = useCallback((type: NodeType) => {
-    const newNode: GraphNodeType = {
-      id: generateNodeId(),
-      type,
-      name: `Новый ${type}`,
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200,
-      health: Math.floor(Math.random() * 100),
-      status: "healthy",
-      properties: {},
-    };
-    setNodes((prev) => [...prev, newNode]);
-    setSelectedNodeId(newNode.id);
-    setHasChanges(true);
-    toast.success(`${newNode.name} добавлен на граф`);
-  }, []);
-
-  const handleSelectNode = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-  }, []);
-
-  const handleDragNode = useCallback(
-    (nodeId: string, x: number, y: number) => {
-      setFlows((prev) =>
-        prev.map((flow) =>
-          flow.id === activeFlowId
-            ? {
-                ...flow,
-                nodes: flow.nodes.map((node) =>
-      node.id === nodeId ? { ...node, x, y } : node
-                ),
-              }
-            : flow
-        )
-      );
-    setHasChanges(true);
-    },
-    [activeFlowId]
-  );
-
-  const handleUpdateNode = useCallback(
-    (nodeId: string, updates: Partial<GraphNodeType>) => {
-      setNodes((prev) =>
-        prev.map((node) =>
-      node.id === nodeId ? { ...node, ...updates } : node
-        )
-      );
-    setHasChanges(true);
-    },
-    []
-  );
-
-  const handleDeleteNode = useCallback(
-    (nodeId: string) => {
-      setNodes((prev) => prev.filter((node) => node.id !== nodeId));
-    if (selectedNodeId === nodeId) {
-      setSelectedNodeId(null);
-    }
-    setHasChanges(true);
-      toast.success("Узел удален");
-    },
-    [selectedNodeId]
-  );
-
-  const handleSave = () => {
-    toast.success("Граф сохранен");
-    setHasChanges(false);
-  };
-
-  const handleExport = () => {
-    const dataStr = JSON.stringify(nodes, null, 2);
-    const dataUri =
-      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
-    const exportFileDefaultName = "graph_export.json";
-
-    const linkElement = document.createElement("a");
-    linkElement.setAttribute("href", dataUri);
-    linkElement.setAttribute("download", exportFileDefaultName);
-    linkElement.click();
-    
-    toast.success("Граф экспортирован");
-  };
-
-  const handleImport = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) {
-        toast.error("Файл не выбран");
-        return;
-      }
-
-      try {
-        // Читаем содержимое файла
-        const fileContent = await file.text();
-
-        // Парсим JSON
-        let parsedData;
-        try {
-          parsedData = JSON.parse(fileContent);
-        } catch (parseError) {
-          throw new Error("Неверный JSON-формат файла");
-        }
-
-        // Проверяем поддерживаемые форматы
-        const isArrayFormat = Array.isArray(parsedData);
-        const isObjectFormat =
-          parsedData &&
-          typeof parsedData === "object" &&
-          Array.isArray(parsedData.nodes);
-
-        if (!isArrayFormat && !isObjectFormat) {
-          throw new Error(
-            "Формат файла не поддерживается. Ожидается: массив узлов или объект с полями nodes/links"
-          );
-        }
-
-        // Извлекаем данные
-        const nodesToImport = isArrayFormat ? parsedData : parsedData.nodes;
-        const linksToImport = isArrayFormat ? [] : parsedData.links || [];
-
-        // Проверяем узлы
-        if (!Array.isArray(nodesToImport)) {
-          throw new Error("Узлы должны быть массивом");
-        }
-
-        // Проверяем связи
-        if (!Array.isArray(linksToImport)) {
-          throw new Error("Связи должны быть массивом");
-        }
-
-        // Валидация узлов
-        const invalidNode = nodesToImport.find(
-          (node) =>
-            !node.id ||
-            !node.type ||
-            typeof node.x !== "number" ||
-            typeof node.y !== "number"
-        );
-
-        if (invalidNode) {
-          throw new Error(`Некорректный узел: ${JSON.stringify(invalidNode)}`);
-        }
-
-        // Валидация связей
-        const invalidLink = linksToImport.find(
-          (link) => !link.source || !link.target || !link.id
-        );
-
-        if (invalidLink) {
-          throw new Error(`Некорректная связь: ${JSON.stringify(invalidLink)}`);
-        }
-
-        // Обновляем состояние
-        setNodes((prevNodes) => [...prevNodes, ...nodesToImport]);
-        setLinks((prevLinks) => [...prevLinks, ...linksToImport]);
-            setSelectedNodeId(null);
-        setSelectedLinkId(null);
-            setHasChanges(true);
-
-        toast.success(
-          `Успешно импортировано: ${nodesToImport.length} узлов, ${linksToImport.length} связей`
-        );
-          } catch (error) {
-        console.error("Ошибка импорта:", error);
-        toast.error(
-          error instanceof Error
-            ? `Ошибка импорта: ${error.message}`
-            : "Неизвестная ошибка при импорте"
-        );
-      }
-    };
-
-    input.click();
-  };
-
-  const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 0.1, 2));
-  };
-
-  const handleZoomOut = () => {
-    setZoom((prev) => Math.max(prev - 0.1, 0.5));
-  };
-
-  const handleReset = () => {
-    setNodes(() => []);
-    setSelectedNodeId(null);
-    setZoom(1);
-    setHasChanges(false);
-    toast.success("Граф очищен");
-  };
-
-  const handleClearAll = () => {
-    if (nodes.length > 0) {
-      setNodes(() => []);
-      setSelectedNodeId(null);
-      setHasChanges(true);
-      toast.success("Все узлы удалены");
-    }
-  };
-
-  // Drag&drop для добавления узла на canvas
-  const handleCanvasDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const type = e.dataTransfer.getData("application/node-type") as NodeType;
-    if (!type) return;
-    const canvas = document.getElementById("graph-canvas");
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    handleAddNodeAt(type, x, y);
-  };
-  const handleCanvasDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-  };
-  // Добавить узел в конкретную позицию
-  const handleAddNodeAt = (type: NodeType, x: number, y: number) => {
-    const newNode: GraphNodeType = {
-      id: generateNodeId(),
-      type,
-      name: type.charAt(0).toUpperCase() + type.slice(1),
-      x,
-      y,
-      health: Math.floor(Math.random() * 100),
-      status: "healthy",
-      properties: {},
-    };
-    setNodes((prev) => [...prev, newNode]);
-    setSelectedNodeId(newNode.id);
-    setHasChanges(true);
-    toast.success(`${newNode.name} добавлен на граф`);
-  };
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -460,24 +126,22 @@ export const GraphEditor: React.FC = () => {
           <NodePalette onAddNode={handleAddNode} />
         </div>
 
-        {/* Main Canvas */}
-        <div className="flex-1 relative bg-white overflow-hidden">
-          <div 
-            id="graph-canvas"
-            className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
-            style={{ 
-              transform: `scale(${zoom})`,
-              transformOrigin: "top left",
-              backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
-              pointerEvents: "auto", // canvas принимает события
-            }}
-            onDrop={handleCanvasDrop}
-            onDragOver={handleCanvasDragOver}
-          >
-            {/* SVG слой для связей */}
-            <svg
-              className="absolute inset-0 w-full h-full"
-              style={{ zIndex: 1, pointerEvents: "none" }} // SVG не перехватывает события
+        {/* Main Canvas + Properties Panel */}
+        <div className="flex-1 relative bg-white overflow-hidden flex">
+          {/* Canvas + overlay */}
+          <div className="flex-1 relative">
+            <div
+              id="graph-canvas"
+              className="absolute inset-0 bg-[#f7f7fa] bg-grid-pattern"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "top left",
+                backgroundSize: `${20 * zoom}px ${20 * zoom}px`,
+                pointerEvents: "auto",
+                zIndex: 10,
+              }}
+              onDrop={handleCanvasDrop}
+              onDragOver={handleCanvasDragOver}
             >
               {/* Overlay только над canvas */}
               {modalNode && (
@@ -705,31 +369,28 @@ export const GraphEditor: React.FC = () => {
                     </p>
                   </div>
                 </div>
-            ) : (
-              <>
-                {nodes.map((node) => (
-                <GraphNode
-                  key={node.id}
-                  node={node}
-                  isSelected={selectedNodeId === node.id}
-                    onSelect={setSelectedNodeId}
-                  onDrag={handleDragNode}
-                  onDelete={handleDeleteNode}
-                    onPortConnectStart={handlePortConnectStart}
-                    onPortConnectEnd={handlePortConnectEnd}
-                    dragPort={dragPort}
-                    links={links}
-                    nodes={nodes}
-                    onDoubleClick={() => setModalNodeId(node.id)}
-                  />
-                ))}
-              </>
-            )}
-          </div>
-          
-          {/* Canvas info overlay */}
-          <div className="absolute bottom-4 left-4 bg-green-600 px-4 py-2 rounded-lg shadow text-xs text-white font-semibold border border-green-800">
-            Клик - выбор | Перетаскивание - перемещение
+              ) : (
+                <>
+                  {nodes.map((node) => (
+                    <GraphNode
+                      key={node.id}
+                      node={node}
+                      isSelected={selectedNodeId === node.id}
+                      onSelect={setSelectedNodeId}
+                      onDrag={handleDragNode}
+                      onDelete={handleDeleteNode}
+                      onPortConnectStart={handlePortConnectStart}
+                      onPortConnectEnd={handlePortConnectEnd}
+                      dragPort={dragPort}
+                      links={links}
+                      nodes={nodes}
+                      onDoubleClick={() => setModalNodeId(node.id)}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+            <CanvasInfoOverlay />
           </div>
           {/* Properties Panel (всегда видна) */}
           <div className="w-80 p-4 bg-gray-50 border-l border-gray-200 h-full relative z-[100]">
