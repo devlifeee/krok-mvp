@@ -197,22 +197,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs text-gray-500">Статус</Label>
-                    <Select
-                      value={selectedNode.status}
-                      onValueChange={(value) =>
-                        onUpdateNode(selectedNode.id, { status: value as any })
-                      }
-                    >
-                      <SelectTrigger className="text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="healthy">Здоровый</SelectItem>
-                        <SelectItem value="warning">Предупреждение</SelectItem>
-                        <SelectItem value="critical">Критический</SelectItem>
-                        <SelectItem value="unknown">Неизвестно</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="text-sm bg-gray-100 px-3 py-2 rounded border text-gray-700">
+                      {selectedNode.status === "healthy" && "Здоровый"}
+                      {selectedNode.status === "warning" && "Предупреждение"}
+                      {selectedNode.status === "critical" && "Критический"}
+                      {selectedNode.status === "unknown" && "Неизвестно"}
+                    </div>
                   </div>
                   <div>
                     <Label className="text-xs text-gray-500">

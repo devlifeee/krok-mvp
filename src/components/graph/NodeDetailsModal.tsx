@@ -322,21 +322,12 @@ export const NodeDetailsModal: React.FC<NodeDetailsModalProps> = ({
                   <label className="block text-xs text-gray-500 mb-1">
                     Статус
                   </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={localNode.status}
-                    onChange={(e) =>
-                      setLocalNode({
-                        ...localNode,
-                        status: e.target.value as any,
-                      })
-                    }
-                  >
-                    <option value="healthy">Здоровый</option>
-                    <option value="warning">Предупреждение</option>
-                    <option value="critical">Критический</option>
-                    <option value="unknown">Неизвестно</option>
-                  </select>
+                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-700">
+                    {localNode.status === "healthy" && "Здоровый"}
+                    {localNode.status === "warning" && "Предупреждение"}
+                    {localNode.status === "critical" && "Критический"}
+                    {localNode.status === "unknown" && "Неизвестно"}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">
