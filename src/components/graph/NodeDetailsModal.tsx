@@ -342,19 +342,9 @@ export const NodeDetailsModal: React.FC<NodeDetailsModalProps> = ({
                   <label className="block text-xs text-gray-500 mb-1">
                     Здоровье (%)
                   </label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={localNode.health}
-                    onChange={(e) =>
-                      setLocalNode({
-                        ...localNode,
-                        health: Number(e.target.value),
-                      })
-                    }
-                    min="0"
-                    max="100"
-                  />
+                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-700">
+                    {localNode.health}%
+                  </div>
                 </div>
               </div>
             </div>

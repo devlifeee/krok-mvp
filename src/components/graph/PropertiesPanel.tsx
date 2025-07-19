@@ -218,18 +218,9 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                     <Label className="text-xs text-gray-500">
                       Здоровье (%)
                     </Label>
-                    <Input
-                      type="number"
-                      value={selectedNode.health}
-                      onChange={(e) =>
-                        onUpdateNode(selectedNode.id, {
-                          health: Number(e.target.value),
-                        })
-                      }
-                      min="0"
-                      max="100"
-                      className="text-sm"
-                    />
+                    <div className="text-sm bg-gray-100 px-3 py-2 rounded border text-gray-700">
+                      {selectedNode.health}%
+                    </div>
                   </div>
                 </div>
               </div>
