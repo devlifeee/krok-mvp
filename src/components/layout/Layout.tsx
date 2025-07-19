@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { ChatButton } from '@/pages/ChatButton.tsx';
 
 export const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,6 +24,8 @@ export const Layout: React.FC = () => {
           </div>
         </main>
       </div>
+
+      <ChatButton />
     </div>
   );
 };
