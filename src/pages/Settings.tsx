@@ -233,7 +233,14 @@ const Settings: React.FC = () => {
               </Button>
             </div>
 
-            <div className="space-y-3">
+            {/* Добавлен контейнер с фиксированной высотой и прокруткой */}
+            <div 
+              className="space-y-3 overflow-y-auto" 
+              style={{ 
+                maxHeight: '300px',
+                overflowY: users.length >= 4 ? 'auto' : 'visible'  // >4 
+              }}
+            >
               {users.map(user => (
                 <div 
                   key={user.id} 
@@ -269,6 +276,7 @@ const Settings: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
 
         {/* Security Settings */}
         <Card>
