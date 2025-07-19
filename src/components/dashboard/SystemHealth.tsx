@@ -54,7 +54,7 @@ export const SystemHealth: React.FC = () => {
           };
         })
       );
-    }, 30000); // 30сек
+    }, 20000); // 30сек
 
     return () => clearInterval(interval);
   }, []);
