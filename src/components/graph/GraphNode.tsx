@@ -1,5 +1,4 @@
 import React from "react";
-import { Server, Database, Network, Settings, Cloud } from "lucide-react";
 import { GraphNode as GraphNodeType } from "@/types/graph";
 import { InputPorts } from "./InputPorts";
 import { OutputPorts } from "./OutputPorts";
@@ -50,31 +49,6 @@ interface GraphNodeProps {
   onDoubleClick?: () => void;
 }
 
-const nodeIcons = {
-  server: Server,
-  database: Database,
-  network: Network,
-  service: Settings,
-  api: Cloud,
-  storage: Database,
-};
-
-const nodeColors = {
-  server: "bg-blue-100 border-blue-300",
-  database: "bg-green-100 border-green-300",
-  network: "bg-purple-100 border-purple-300",
-  service: "bg-orange-100 border-orange-300",
-  api: "bg-cyan-100 border-cyan-300",
-  storage: "bg-yellow-100 border-yellow-300",
-};
-
-const statusColors = {
-  healthy: "bg-green-500",
-  warning: "bg-yellow-500",
-  critical: "bg-red-500",
-  unknown: "bg-gray-400",
-};
-
 export const GraphNode: React.FC<GraphNodeProps> = React.memo(
   ({
     node,
@@ -89,7 +63,6 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
     nodes,
     onDoubleClick,
   }) => {
-    const IconComponent = nodeIcons[node.type];
     const [isDragging, setIsDragging] = React.useState(false);
     const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
     const nodeRef = React.useRef<HTMLDivElement>(null);
@@ -283,7 +256,6 @@ export const GraphNode: React.FC<GraphNodeProps> = React.memo(
           </div>
         ) : (
           <div className="flex flex-col items-center space-y-2">
-            {IconComponent && <IconComponent className="h-8 w-8 text-black" />}
             <span className="text-sm font-bold text-black drop-shadow">
               {node.name}
             </span>
