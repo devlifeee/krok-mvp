@@ -1,3 +1,24 @@
+/**
+ * @fileoverview Graph Editor page component for Krok MVP
+ * 
+ * This component provides an interactive graph visualization and editing interface
+ * for infrastructure topology. Users can create, edit, and manage nodes and
+ * connections between different system components.
+ * 
+ * Features:
+ * - Interactive node creation and editing
+ * - Drag-and-drop node placement
+ * - Connection management between nodes
+ * - Multiple flow support with tabs
+ * - Zoom and pan controls
+ * - Node properties panel
+ * - Import/export functionality
+ * - Real-time health monitoring
+ * 
+ * @author Krok Development Team
+ * @version 1.0.0
+ */
+
 import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
